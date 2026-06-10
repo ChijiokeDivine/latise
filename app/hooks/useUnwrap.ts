@@ -22,13 +22,13 @@ import { usePublicClient, useWalletClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUnshield } from "@zama-fhe/react-sdk";
 import { parseEventLogs } from "viem";
-import { WRAPPER_ABI } from "@/lib/abis/wrapper.abi";
-import { parseContractError, isUserRejection } from "@/lib/errors";
+import { WRAPPER_ABI } from "../lib/abis/wrapper.abi";
+import { parseContractError, isUserRejection } from "../lib/errors";
 import {
   pollForUnwrapRequestId,
   pollForUnwrapFinalized,
-} from "@/lib/events";
-import { pendingUnwrapKey, INTERVALS } from "@/lib/constants";
+} from "../lib/events";
+import { pendingUnwrapKey, INTERVALS } from "../lib/constants";
 import type {
   Network,
   EnrichedPair,

@@ -3,6 +3,31 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-dm-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+ 
+  /* Brand */
+  --green-50:  #f0faf5;
+  --green-100: #d0ede2;
+  --green-200: #a3d9c4;
+  --green-500: #1e8a56;
+  --green-600: #156640;
+  --green-700: #0f4f30;
+  --green-900: #0a3622;
+ 
+  /* Grays */
+  --gray-50:  #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-900: #111827;
+ 
+  /* Sidebar */
+  --sidebar-width: 220px;
+  --topbar-height: 60px;
 }
 
 @theme inline {
@@ -28,3 +53,13 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-dm-sans), sans-serif;
 }
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-300); }
+ 
+/* Number inputs — hide arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type="number"] { -moz-appearance: textfield; }

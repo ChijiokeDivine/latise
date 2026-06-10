@@ -219,7 +219,7 @@ export const INTERVALS = {
  * in lib/events.ts.
  */
 export const BLOCKS_PER_7_DAYS = 50_400n;
-export const INFURA_MAX_BLOCK_RANGE = 10_000n;
+export const INFURA_MAX_BLOCK_RANGE = 10n;
 
 // ─── Error Message Map ────────────────────────────────────────────────────────
 // Maps Solidity custom error names to user-facing messages.

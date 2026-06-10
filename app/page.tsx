@@ -227,7 +227,7 @@ export default function Home() {
         }
         .btn-cta {
           display: inline-block; background: var(--green-btn); color: #fff;
-          border-radius: 10px; padding: 16px 48px; font-size: 17px; font-weight: 600;
+          border-radius: 13px; padding: 16px 48px; font-size: 17px; font-weight: 600;
           text-decoration: none; cursor: pointer; border: none;
           transition: background 0.15s, box-shadow 0.15s;
           opacity: 0; animation: fadeUp 0.6s ease 1s forwards;
@@ -629,7 +629,7 @@ export default function Home() {
             Latise
           </a>
           <ul className="nav-links">
-            {["Developers", "Resources", "Company"].map((item) => (
+            {["Dashboard", "Wrap & Shield"].map((item) => (
               <li key={item}>
                 <a href="#">
                   {item}
@@ -678,6 +678,7 @@ export default function Home() {
                   width={180} 
                   height={180} 
                   className="coins-image"
+                  loading="eager"
                   aria-hidden="true"
                 />
               </div>
@@ -694,6 +695,7 @@ export default function Home() {
                   width={180} 
                   height={180} 
                   className="coins-image"
+                  loading="eager"
                   aria-hidden="true"
                 />
               </div>
@@ -749,15 +751,15 @@ export default function Home() {
             {[
               {
                 heading: "Company",
-                links: ["About", "Careers", "Media Kit"],
+                links: ["About",  "Media Kit"],
               },
               {
                 heading: "Product",
-                links: ["What's New", "Use Cases",  "For Developers"],
+                links: ["Use Cases",  "For Developers"],
               },
               {
                 heading: "Resources",
-                links: ["Documentation", "SDKs",  "Help Center"],
+                links: ["Documentation", "Help Center"],
               },
             ].map((col) => (
               <div className="footer-col-new" key={col.heading}>

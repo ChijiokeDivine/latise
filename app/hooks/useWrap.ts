@@ -15,10 +15,10 @@ import { useState, useCallback } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { parseEventLogs } from "viem";
-import { ERC20_ABI } from "@/lib/abis/erc20.abi";
-import { WRAPPER_ABI } from "@/lib/abis/wrapper.abi";
-import { parseContractError, isUserRejection } from "@/lib/errors";
-import { computeExpectedWrapAmount } from "@/lib/wrapper";
+import { ERC20_ABI } from "../lib/abis/erc20.abi";
+import { WRAPPER_ABI } from "../lib/abis/wrapper.abi";
+import { parseContractError, isUserRejection } from "../lib/errors";
+import { computeExpectedWrapAmount } from "../lib/wrapper";
 import type {
   Network,
   EnrichedPair,
