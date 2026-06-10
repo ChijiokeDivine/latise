@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 
 // app/page.tsx
 // Horizontal scroll on features: GSAP ScrollTrigger (pin + scrub)
@@ -260,6 +261,7 @@ export default function Home() {
           flex-direction: column; justify-content: space-between;
           overflow: hidden; position: relative;
           opacity: 0;
+          cursor: pointer;
           animation: cardRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .card:nth-child(1) { animation-delay: 1.1s; }
@@ -286,6 +288,10 @@ export default function Home() {
           margin-top: 32px; height: 110px;
           position: relative; display: flex;
           align-items: flex-end; justify-content: flex-end;
+        }
+
+        .coins-image {
+          object-fit: contain;
         }
 
         .illus-mint  { width: 100%; height: 100%; position: relative; overflow: hidden; }
@@ -410,6 +416,7 @@ export default function Home() {
           border: 1px solid #e8ede9;
           width: 500px;              /* plain width — easy to override */
           min-height: 400px;
+          cursor: pointer;
         }
 
         .feature-icon {
@@ -593,6 +600,10 @@ export default function Home() {
           .btn-cta {
             border-radius: 10px; padding: 14px 36px; font-size: 14px; font-weight: 600;
           }
+          .coins-image{
+            width: 100px;
+            height: 100px;
+          }
         }
 
         /* Reduced-motion: skip the pin, wrap cards normally */
@@ -660,14 +671,32 @@ export default function Home() {
               <p className="card-text card-small-writing" >
                 Deposit any supported ERC-20 and receive a confidential token 1:1. 
               </p>
-              <div className="card-illustration"><div className="illus-mint" aria-hidden="true" /></div>
+              <div className="card-illustration">
+                <Image 
+                  src="/coins_fl.png" 
+                  alt="Coins" 
+                  width={180} 
+                  height={180} 
+                  className="coins-image"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
             <div className="card card-purple" >
               <p className="card-text feature-title" > Unwrap Anytime</p>
               <p className="card-text card-small-writing">
                 Redeem your confidential tokens back to ERC-20 whenever you want.
               </p>
-              <div className="card-illustration"><div className="illus-purple" aria-hidden="true" /></div>
+              <div className="card-illustration">
+                <Image 
+                  src="/unwrap.png" 
+                  alt="Unwrap" 
+                  width={180} 
+                  height={180} 
+                  className="coins-image"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
             {/* <div className="card card-dark">
               <p className="card-text">Issue branded debit cards (physical and virtual) to your customers with our API infrastructure.</p>
