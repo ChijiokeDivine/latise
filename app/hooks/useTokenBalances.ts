@@ -15,7 +15,7 @@ import { useAccount } from "wagmi";
 import { useConfidentialBalance } from "@zama-fhe/react-sdk";
 import { fetchUnderlyingBalanceAndAllowance } from "@/lib/wrapper";
 import { INTERVALS } from "@/lib/constants";
-import type { Network, EnrichedPair, TokenBalances } from "@/types";
+import type { Network, EnrichedPair, TokenBalances } from "@/app/types";
 
 /**
  * Fetches both balances for the connected wallet on a specific pair.

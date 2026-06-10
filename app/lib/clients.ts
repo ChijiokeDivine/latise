@@ -9,8 +9,8 @@
 
 import { createPublicClient, http } from "viem";
 import { sepolia, mainnet } from "viem/chains";
-import { NETWORK_CONFIGS } from "@/lib/constants";
-import type { Network } from "@/types";
+import { NETWORK_CONFIGS } from "@/app/lib/constants";
+import type { Network } from "@/app/types";
 
 /**
  * Returns a viem PublicClient for the given network.

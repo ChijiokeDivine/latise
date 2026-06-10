@@ -8,7 +8,7 @@
 // Rule: NEVER show $0 for an unknown price — return null and let the UI
 // show the token amount only.
 
-import { INTERVALS } from "@/lib/constants";
+import { INTERVALS } from "@/app/lib/constants";
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
 

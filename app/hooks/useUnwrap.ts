@@ -35,7 +35,7 @@ import type {
   UnwrapState,
   UnwrapResult,
   PendingUnwrap,
-} from "@/types";
+} from "@/app/types";
 
 interface UseUnwrapOptions {
   pair: EnrichedPair;

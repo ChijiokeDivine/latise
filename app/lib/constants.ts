@@ -4,7 +4,7 @@
 // token lists, and app-wide timing/limits.
 // NEVER hardcode addresses anywhere else — always import from here.
 
-import type { Network, NetworkConfig, FaucetToken } from "@/types";
+import type { Network, NetworkConfig, FaucetToken } from "@/app/types";
 
 // ─── Chain IDs ────────────────────────────────────────────────────────────────
 

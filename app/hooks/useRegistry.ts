@@ -9,9 +9,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchEnrichedPairs, fetchPairByWrapper } from "@/lib/registry";
-import { INTERVALS } from "@/lib/constants";
-import type { Network, EnrichedPair } from "@/types";
+import { fetchEnrichedPairs, fetchPairByWrapper } from "@/app/lib/registry";
+import { INTERVALS } from "@/app/lib/constants";
+import type { Network, EnrichedPair } from "@/app/types";
 
 // ─── All pairs ────────────────────────────────────────────────────────────────
 

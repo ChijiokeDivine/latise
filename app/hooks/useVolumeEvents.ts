@@ -13,7 +13,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchAllWrapperEvents, buildDailyVolume } from "@/lib/events";
 import { INTERVALS } from "@/lib/constants";
-import type { Network, EnrichedPair, DailyVolume } from "@/types";
+import type { Network, EnrichedPair, DailyVolume } from "@/app/types";
 
 /**
  * Fetches wrap + unwrap events for all valid pairs and returns

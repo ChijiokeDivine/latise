@@ -12,10 +12,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRegistry } from "@/hooks/useRegistry";
+import { useRegistry } from "@/app/hooks/useRegistry";
 import { fetchAggregatedTVS } from "@/lib/wrapper";
 import { INTERVALS } from "@/lib/constants";
-import type { Network, AggregatedTVS } from "@/types";
+import type { Network, AggregatedTVS } from "@/app/types";
 
 /**
  * Fetches and caches TVS data for all valid pairs on the given network.

@@ -24,7 +24,7 @@ import type {
   EnrichedPair,
   WrapState,
   WrapResult,
-} from "@/types";
+} from "@/app/types";
 
 interface UseWrapOptions {
   pair: EnrichedPair;

@@ -14,10 +14,10 @@
 import { useState, useCallback } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import { ERC20_ABI } from "@/lib/abis/erc20.abi";
-import { FAUCET_MINT_AMOUNT } from "@/lib/constants";
-import { parseContractError, isUserRejection } from "@/lib/errors";
-import type { FaucetToken, FaucetState } from "@/types";
+import { ERC20_ABI } from "@/app/lib/abis/erc20.abi";
+import { FAUCET_MINT_AMOUNT } from "@/app/lib/constants";
+import { parseContractError, isUserRejection } from "@/app/lib/errors";
+import type { FaucetToken, FaucetState } from "@/app/types";
 
 interface UseFaucetReturn {
   state: FaucetState;

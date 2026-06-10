@@ -7,8 +7,8 @@
 //   E-2: User wallet rejections (code 4001) are NOT errors — return isUserRejection: true.
 //   E-3: Contract revert reasons are mapped to human-readable strings.
 
-import { CONTRACT_ERRORS } from "@/lib/constants";
-import type { ParsedContractError } from "@/types";
+import { CONTRACT_ERRORS } from "@/app/lib/constants";
+import type { ParsedContractError } from "@/app/types";
 
 // ─── User rejection detection ─────────────────────────────────────────────────
 

@@ -8,12 +8,12 @@
 //   R-3: Batch metadata (name, symbol, decimals) via multicall — not individual calls.
 //   R-5: This data is cached by TanStack Query at the hook layer (staleTime: 60s).
 
-import { REGISTRY_ABI } from "@/lib/abis/registry.abi";
-import { ERC20_ABI } from "@/lib/abis/erc20.abi";
-import { WRAPPER_ABI } from "@/lib/abis/wrapper.abi";
-import { REGISTRY_ADDRESS, SEPOLIA_MOCK_TOKENS } from "@/lib/constants";
-import { getPublicClient } from "@/lib/clients";
-import type { Network, TokenWrapperPair, EnrichedPair } from "@/types";
+import { REGISTRY_ABI } from "@/app/lib/abis/registry.abi";
+import { ERC20_ABI } from "@/app/lib/abis/erc20.abi";
+import { WRAPPER_ABI } from "@/app/lib/abis/wrapper.abi";
+import { REGISTRY_ADDRESS, SEPOLIA_MOCK_TOKENS } from "@/app/lib/constants";
+import { getPublicClient } from "@/app/lib/clients";
+import type { Network, TokenWrapperPair, EnrichedPair } from "@/app/types";
 
 // ─── Raw registry fetch ───────────────────────────────────────────────────────
 

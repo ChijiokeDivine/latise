@@ -17,15 +17,15 @@ import {
   BLOCKS_PER_7_DAYS,
   INFURA_MAX_BLOCK_RANGE,
   NETWORK_CONFIGS,
-} from "@/lib/constants";
-import { getPublicClient } from "@/lib/clients";
+} from "@/app/lib/constants";
+import { getPublicClient } from "@/app/lib/clients";
 import type {
   Network,
   WrapEvent,
   UnwrapFinalizedEvent,
   DailyVolume,
   EnrichedPair,
-} from "@/types";
+} from "@/app/types";
 
 // ─── ABI items for getLogs ────────────────────────────────────────────────────
 

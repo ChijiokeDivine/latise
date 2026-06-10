@@ -9,13 +9,13 @@
 //        NOT via raw readContract — this file only reads non-encrypted state.
 //   P-1: All multi-wrapper reads use multicall.
 
-import { WRAPPER_ABI } from "@/lib/abis/wrapper.abi";
-import { ERC20_ABI } from "@/lib/abis/erc20.abi";
-import { COINGECKO_IDS } from "@/lib/constants";
-import { getPublicClient } from "@/lib/clients";
-import { fetchTokenPrices } from "@/lib/prices";
-import { formatTokenUnits } from "@/lib/format";
-import type { Network, TVSData, AggregatedTVS, EnrichedPair } from "@/types";
+import { WRAPPER_ABI } from "@/app/lib/abis/wrapper.abi";
+import { ERC20_ABI } from "@/app/lib/abis/erc20.abi";
+import { COINGECKO_IDS } from "@/app/lib/constants";
+import { getPublicClient } from "@/app/lib/clients";
+import { fetchTokenPrices } from "@/app/lib/prices";
+import { formatTokenUnits } from "@/app/lib/format";
+import type { Network, TVSData, AggregatedTVS, EnrichedPair } from "@/app/types";
 
 // ─── TVS for a single wrapper ─────────────────────────────────────────────────
 
