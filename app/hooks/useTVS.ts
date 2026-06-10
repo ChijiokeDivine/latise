@@ -13,8 +13,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRegistry } from "@/app/hooks/useRegistry";
-import { fetchAggregatedTVS } from "@/lib/wrapper";
-import { INTERVALS } from "@/lib/constants";
+import { fetchAggregatedTVS } from "@/app/lib/wrapper";
+import { INTERVALS } from "@/app/lib/constants";
 import type { Network, AggregatedTVS } from "@/app/types";
 
 /**
