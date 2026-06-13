@@ -1,16 +1,78 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
+import Script from "next/script";
 
 // app/page.tsx
 // Horizontal scroll on features: GSAP ScrollTrigger (pin + scrub)
 // All other animations: pure CSS keyframes — zero other libraries.
 
+type LordIconConfig = {
+  src: string;
+  trigger: string;
+  delay?: number;
+  state?: string;
+  style: CSSProperties;
+};
+
+type ShowcaseItem = {
+  title: string;
+  desc: string;
+  image?: string;
+  icon?: LordIconConfig;
+};
+
+const showcaseItems: ShowcaseItem[] = [
+  {
+    title: "Secure Token Wrapping",
+    desc: "Experience seamless conversion of standard ERC-20 tokens into fully encrypted confidential assets with a single click.",
+    icon: {
+      src: "https://cdn.lordicon.com/csujbpgj.json",
+      trigger: "loop",
+      state: "loop-cycle",
+      style: { width: "150px", height: "150px" },
+    },
+  },
+  {
+    title: "On-Chain Privacy",
+    desc: "Your balances are encrypted using FHE technology, ensuring only you can access your financial data.",
+    icon: {
+      src: "https://cdn.lordicon.com/rhmhivzj.json",
+      trigger: "loop",
+      state: "loop-spin",
+      style: { width: "150px", height: "150px" },
+    },
+  },
+  {
+    title: "Real-Time Analytics",
+    desc: "Track Total Value Shielded and transaction volumes across all supported pairs in real time.",
+    icon: {
+      src: "https://cdn.lordicon.com/xowcggal.json",
+      trigger: "loop",
+      state: "loop-all",
+      style: { width: "150px", height: "150px" },
+    },
+  },
+  {
+    title: "Testnet Faucet",
+    desc: "Get free test tokens on Sepolia to experiment with all Latise features without spending real assets.",
+    icon: {
+      src: "https://cdn.lordicon.com/rnvphzfj.json",
+      trigger: "loop",
+      state: "loop-rotate",
+      style: { width: "150px", height: "150px" },
+    },
+  },
+];
+
 export default function Home() {
 
   const stickyRef = useRef<HTMLDivElement>(null);
   const trackRef  = useRef<HTMLDivElement>(null);
+  const showcaseCardsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const heroInlineIconRef = useRef<HTMLSpanElement>(null);
+  const [heroIconMorphed, setHeroIconMorphed] = useState(false);
 
   useEffect(() => {
     let ctx: { revert: () => void } | undefined;
@@ -47,6 +109,57 @@ export default function Home() {
     init();
     return () => ctx?.revert();
   }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry, i) => {
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).style.transitionDelay = `${i * 0.1}s`;
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.1
+      }
+    );
+
+    showcaseCardsRef.current.forEach(card => {
+      if (card) observer.observe(card);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const target = heroInlineIconRef.current;
+    if (!target || heroIconMorphed) return;
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+
+          observer.unobserve(entry.target);
+          timeoutId = setTimeout(() => {
+            setHeroIconMorphed(true);
+          }, 3000);
+        });
+      },
+      { threshold: 0.35 }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [heroIconMorphed]);
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const wrapper = document.createElement("div");
@@ -64,6 +177,10 @@ export default function Home() {
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
   }, []);
+  const heroIconProps = heroIconMorphed
+    ? { trigger: "morph", state: "morph-coins" }
+    : { trigger: "in", state: "in-reveal", delay: 1500 };
+
   return (
     <>
       <style>{`
@@ -203,6 +320,14 @@ export default function Home() {
           color: var(--green-dark); letter-spacing: -1.5px;
           margin-bottom: 24px;
           font-family: var(--font-dm-sans), sans-serif;
+        }
+        .hero-inline-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          vertical-align: middle;
+          margin-left: 10px;
+          // transform: translateY(10px);
         }
 
         @keyframes wave {
@@ -389,7 +514,7 @@ export default function Home() {
         }
 
         .features-heading {
-          font-size: clamp(30px, 4vw, 48px);
+          font-size: clamp(34px, 4.5vw, 56px);
           font-weight: 700;
           color: var(--green-dark);
           letter-spacing: -0.8px;
@@ -414,14 +539,14 @@ export default function Home() {
           padding: 32px;
           border-radius: 16px;
           border: 1px solid #e8ede9;
-          width: 500px;              /* plain width — easy to override */
+          width: 600px;              /* Increased width for desktop */
           min-height: 400px;
           cursor: pointer;
         }
 
         .feature-icon {
-          width: 44px; height: 44px;
-          background: #d6ede6; border-radius: 10px;
+          width: 100px; height: 100px;
+          background: #ffffffff; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
           margin-bottom: 20px; font-size: 20px;
         }
@@ -607,8 +732,119 @@ export default function Home() {
         }
 
         /* Reduced-motion: skip the pin, wrap cards normally */
+        /* ── New section with 4 cards ─────────────────────────────────── */
+        .showcase-section {
+          padding: 100px 32px;
+          max-width: 1500px;
+          margin: 0 auto;
+          background: #ffffff;
+        }
+        .showcase-header {
+          text-align: center;
+          margin-bottom: 60px;
+        }
+        .showcase-eyebrow {
+          font-size: 13px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: var(--green-mid);
+          margin-bottom: 16px;
+        }
+        .showcase-heading {
+          font-size: clamp(34px, 4.5vw, 56px);
+          font-weight: 700;
+          color: var(--green-dark);
+          font-family: var(--font-dm-sans), sans-serif;
+          letter-spacing: -0.8px;
+        }
+        .showcase-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 24px;
+        }
+        .showcase-card {
+          width: 100%;
+          max-width: 550px;
+          border-radius: 20px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          opacity: 0;
+          transform: translateY(40px);
+          margin-bottom: 80px;
+        }
+        .showcase-card:hover {
+          transform: translateY(-4px);
+          
+        }
+        .showcase-card.visible {
+          opacity: 1;
+          transform: translateY(0);
+          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .showcase-card-image {
+          width: 100%;
+          height: 240px;
+          object-fit: cover;
+        }
+        .showcase-card-icon {
+          width: 100%;
+          height: 240px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: white;
+        }
+        .showcase-card-content {
+          padding: 28px 24px 32px;
+        }
+        .showcase-card-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--green-dark);
+          margin-bottom: 10px;
+          font-family: var(--font-dm-sans), sans-serif;
+        }
+        .showcase-card-desc {
+          font-size: 15px;
+          color: var(--text-muted);
+          line-height: 1.6;
+        }
+
+        @media (max-width: 1024px) {
+          .showcase-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 768px) {
+          .hero-inline-icon {
+            margin-left: 6px;
+            transform: translateY(4px);
+            display: none;
+          }
+          .showcase-section {
+            padding: 80px 16px;
+          }
+          .showcase-grid {
+            grid-template-columns: 1fr;
+          }
+          .showcase-card-image {
+            height: 250px;
+          }
+            .showcase-card {
+              margin-bottom: 40px;
+            }
+
+        }
+        @media (min-width: 1025px) {
+          .showcase-grid {
+            grid-template-columns: repeat(2, minmax(0, 550px));
+            justify-content: center;
+          }
+        }
         @media (prefers-reduced-motion: reduce) {
-          .wave-char, .hero-subtext, .btn-cta, .card {
+          .wave-char, .hero-subtext, .btn-cta, .card, .showcase-card {
             animation: none !important;
             opacity: 1 !important;
             transform: none !important;
@@ -641,7 +877,7 @@ export default function Home() {
             ))}
           </ul>
           <div className="nav-actions">
-            <a href="#" className="btn-contact">
+            <a href="/dashboard" className="btn-contact">
               Get started
               <svg className="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M4 8h8m0 0-4-4m4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -653,12 +889,21 @@ export default function Home() {
         {/* ── HERO ─────────────────────────────────────────────────── */}
         <section className="hero">
           <h1 className="hero-headline" aria-label="The simplest way to shield your tokens.">
-            <WavyText text="The simplest way to shield your tokens." />
-          
-            {/* <WavyText text="you can see." startIndex={27} /> */}
+            <WavyText text="The simplest way to shield your tokens" />
+            <span
+              ref={heroInlineIconRef}
+              className="hero-inline-icon"
+              aria-hidden="true"
+            >
+              <lord-icon
+                src="https://cdn.lordicon.com/ymgusxed.json"
+                {...heroIconProps}
+                style={{ width: "clamp(42px, 6vw, 72px)", height: "clamp(42px, 6vw, 72px)" }}
+              />
+            </span>.
           </h1>
           <p className="hero-subtext">
-            Convert any ERC-20 into its confidential counterpart. Balances live on-chain, only you can read them.
+            Convert any ERC-20 into its confidential counterpart. Balances live on chain, only you can read them.
           </p>
           <a href="#" className="btn-cta">Start exploring</a>
         </section>
@@ -710,6 +955,54 @@ export default function Home() {
             </div>  */}
           </div>
         </section>
+        
+        {/* Lordicon script */}
+        <Script
+          src="https://cdn.lordicon.com/lordicon.js"
+          strategy="afterInteractive"
+        />
+        
+        {/* ── SHOWCASE SECTION ───────────────────────────────────── */}
+        <section className="showcase-section" aria-label="Showcase">
+          <div className="showcase-header">
+            <p className="showcase-eyebrow">Showcase</p>
+            <h2 className="showcase-heading">See Latise in action</h2>
+          </div>
+          <div className="showcase-grid">
+            {showcaseItems.map((item, i) => (
+              <div 
+                key={item.title} 
+                className="showcase-card"
+                ref={(el) => { showcaseCardsRef.current[i] = el; }}
+              >
+                {item.icon ? (
+                  <div className="showcase-card-icon">
+                    <lord-icon
+                      src={item.icon.src}
+                      trigger={item.icon.trigger}
+                      state={item.icon.state}
+                      style={item.icon.style}
+                    />
+                  </div>
+                ) : item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    width={440}
+                    height={240}
+                    className="showcase-card-image"
+                    priority={i < 2}
+                  />
+                ) : null}
+                <div className="showcase-card-content">
+                  <h3 className="showcase-card-title">{item.title}</h3>
+                  <p className="showcase-card-desc">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
 
         {/* ── FEATURES ─────────────────────────────────────────────
             stickyRef → the element GSAP pins to the viewport.
@@ -720,20 +1013,27 @@ export default function Home() {
 
             <div className="features-header">
               <p className="features-eyebrow">Why Latise</p>
-              <h2 className="features-heading">Everything you need to go private on-chain</h2>
+              <h2 className="features-heading">Everything you need to go private on chain</h2>
             </div>
 
             <div className="features-track" ref={trackRef}>
               {[
-                { icon: "🏦", title: "Live Registry",         bg: "#d6ede6", color:"#0d3b2e", desc: "Every ERC-20 ↔ ERC-7984 wrapper pair, pulled directly from the registry contract. Always current, nothing hardcoded." },
-                { icon: "⚡", title: "One-Click Wrapping",     bg: "#5b4b8a", color:"#ffffff", desc: "One approval, one transaction. No complex setup, no multistep flows. Connect your wallet and wrap in under 30 seconds." },
-                { icon: "🔒", title: "Encrypted Balances",    bg: "#0d3b2e", color:"#ffffff", desc: "Your cToken balance is FHE-encrypted on-chain. No block explorer or wallet scanner can read it. Only you can." },
-                { icon: "💳", title: "Client-Side Decryption",bg: "#e8dfd0", color:"#2a2a2a", desc: "Hit Reveal and your balance decrypts locally using your wallet signature. The plaintext never touches a server." },
-                { icon: "📊", title: "TVS Analytics",         bg: "#ef9b86", color:"#2a2a2a", desc: "Track Total Value Shielded per wrapper in real time. Wrap and unwrap volume, top pairs, all queried directly from the contract." },
-                { icon: "🌍", title: "Sepolia Faucet",        bg: "#caa3f0", color:"#000000", desc: "Testing on testnet? Request free cUSDT mock tokens instantly. One request per wallet every 24 hours, contract-enforced." },
+                { iconSrc: "https://cdn.lordicon.com/yaxbmvvh.json", trigger: "hover", state: "hover-unfold", title: "Live Registry",         bg: "#d6ede6", color:"#0d3b2e", desc: "Every ERC-20 ↔ ERC-7984 wrapper pair, pulled directly from the registry contract. Always current, nothing hardcoded." },
+                { iconSrc: "https://cdn.lordicon.com/jznyltqt.json", trigger: "hover", title: "One-Click Wrapping",     bg: "#5b4b8a", color:"#ffffff", desc: "One approval, one transaction. No complex setup, no multistep flows. Connect your wallet and wrap in under 30 seconds." },
+                { iconSrc: "https://cdn.lordicon.com/drdlomqk.json", trigger: "hover", title: "Encrypted Balances",    bg: "#0d3b2e", color:"#ffffff", desc: "Your cToken balance is FHE-encrypted on-chain. No block explorer or wallet scanner can read it. Only you can." },
+                { iconSrc: "https://cdn.lordicon.com/ddgirohb.json", trigger: "hover", title: "Client-Side Decryption",bg: "#e8dfd0", color:"#2a2a2a", desc: "Hit Reveal and your balance decrypts locally using your wallet signature. The plaintext never touches a server." },
+                { iconSrc: "https://cdn.lordicon.com/jazzayho.json", trigger: "hover", title: "TVS Analytics",         bg: "#ef9b86", color:"#2a2a2a", desc: "Track Total Value Shielded per wrapper in real time. Wrap and unwrap volume, top pairs, all queried directly from the contract." },
+                { iconSrc: "https://cdn.lordicon.com/ymgusxed.json", trigger: "hover", title: "Sepolia Faucet",        bg: "#caa3f0", color:"#000000", desc: "Testing on testnet? Request free cUSDT mock tokens instantly. One request per wallet every 24 hours, contract-enforced." },
               ].map((f) => (
                 <div className="feature-item" key={f.title} style={{ backgroundColor: f.bg, color: f.color }}>
-                  <div className="feature-icon" aria-hidden="true">{f.icon}</div>
+                  <div className="feature-icon" aria-hidden="true">
+                    <lord-icon
+                      src={f.iconSrc}
+                      trigger={f.trigger}
+                      state={f.state}
+                      style={{ width: "70px", height: "70px" }}
+                    />
+                  </div>
                   <h3 className="feature-title">{f.title}</h3>
                   <p className="feature-desc">{f.desc}</p>
                 </div>

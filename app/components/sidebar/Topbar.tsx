@@ -8,10 +8,32 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { truncateAddress } from "@/app/lib/constants";
 import { NetworkSwitcher } from "./NetworkSwitcher";
+import { useState, useRef, useEffect } from "react";
 
 export function Topbar() {
   const { login, logout, ready, authenticated } = usePrivy();
   const { address } = useAccount();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleCopy = async () => {
+    if (!address) return;
+    await navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header
@@ -70,26 +92,79 @@ export function Topbar() {
 
       {/* Wallet button */}
       {ready && (
-        authenticated && address ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => logout()}
-              className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full border border-gray-200 hover:border-gray-300 text-sm font-medium text-gray-700 transition"
+        <div className="flex items-center gap-2">
+          {authenticated && address ? (
+            <div
+              ref={dropdownRef}
+              className="relative"
+              onMouseEnter={() => setDropdownOpen(true)}
+              onMouseLeave={() => setDropdownOpen(false)}
             >
-              <span className="text-xs text-gray-500">{truncateAddress(address)}</span>
-              <span className="w-7 h-7 rounded-full bg-[#156640] flex items-center justify-center text-white text-xs font-bold">
-                {address.slice(2, 4).toUpperCase()}
-              </span>
+              <button className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full border border-gray-200 hover:border-gray-300 text-sm font-medium text-gray-700 transition">
+                <span className="text-xs text-gray-500">{truncateAddress(address)}</span>
+                <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  <img
+                    src={`https://api.dicebear.com/10.x/identicon/svg?seed=${address}`}
+                    alt="Latise"
+                    className="w-4 h-4"
+                  />
+                </span>
+              </button>
+
+              {/* Dropdown */}
+              {dropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                  {/* Address display */}
+                 
+
+                  {/* Actions */}
+                  <button
+                    onClick={handleCopy}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-[#156640]">
+                          <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[#156640] font-medium">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                          <rect x="9" y="9" width="13" height="13" rx="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                       {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
+                      </>
+                    )}
+                  </button>
+
+                  <div className="border-t border-gray-100 my-1" />
+
+                  <button
+                    onClick={() => logout()}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Disconnect
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => login()}
+              className="px-4 py-2 bg-[#156640] hover:bg-[#0f4f30] text-white text-sm font-semibold rounded-lg transition"
+            >
+              Connect Wallet
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => login()}
-            className="px-4 py-2 bg-[#156640] hover:bg-[#0f4f30] text-white text-sm font-semibold rounded-lg transition"
-          >
-            Connect Wallet
-          </button>
-        )
+          )}
+        </div>
       )}
     </header>
   );
