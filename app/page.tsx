@@ -550,6 +550,12 @@ export default function Home() {
           display: flex; align-items: center; justify-content: center;
           margin-bottom: 20px; font-size: 20px;
         }
+        .feature-icon-image {
+          width: auto;
+          height: auto;
+          margin-bottom: 20px;
+          border-radius: 10px;
+        }
         .feature-title {
           font-size: 25px; font-weight: 600;
           font-family: var(--font-dm-sans), sans-serif;
@@ -1018,22 +1024,30 @@ export default function Home() {
 
             <div className="features-track" ref={trackRef}>
               {[
-                { iconSrc: "https://cdn.lordicon.com/yaxbmvvh.json", trigger: "hover", state: "hover-unfold", title: "Live Registry",         bg: "#d6ede6", color:"#0d3b2e", desc: "Every ERC-20 ↔ ERC-7984 wrapper pair, pulled directly from the registry contract. Always current, nothing hardcoded." },
-                { iconSrc: "https://cdn.lordicon.com/jznyltqt.json", trigger: "hover", title: "One-Click Wrapping",     bg: "#5b4b8a", color:"#ffffff", desc: "One approval, one transaction. No complex setup, no multistep flows. Connect your wallet and wrap in under 30 seconds." },
-                { iconSrc: "https://cdn.lordicon.com/drdlomqk.json", trigger: "hover", title: "Encrypted Balances",    bg: "#0d3b2e", color:"#ffffff", desc: "Your cToken balance is FHE-encrypted on-chain. No block explorer or wallet scanner can read it. Only you can." },
-                { iconSrc: "https://cdn.lordicon.com/ddgirohb.json", trigger: "hover", title: "Client-Side Decryption",bg: "#e8dfd0", color:"#2a2a2a", desc: "Hit Reveal and your balance decrypts locally using your wallet signature. The plaintext never touches a server." },
-                { iconSrc: "https://cdn.lordicon.com/jazzayho.json", trigger: "hover", title: "TVS Analytics",         bg: "#ef9b86", color:"#2a2a2a", desc: "Track Total Value Shielded per wrapper in real time. Wrap and unwrap volume, top pairs, all queried directly from the contract." },
-                { iconSrc: "https://cdn.lordicon.com/ymgusxed.json", trigger: "hover", title: "Sepolia Faucet",        bg: "#caa3f0", color:"#000000", desc: "Testing on testnet? Request free cUSDT mock tokens instantly. One request per wallet every 24 hours, contract-enforced." },
-              ].map((f) => (
+                { iconSrc: "/regist.jpeg", trigger: "hover", state: "hover-unfold", title: "Live Registry",         bg: "#d6ede6", color:"#0d3b2e", desc: "Every ERC-20 ↔ ERC-7984 wrapper pair, pulled directly from the registry contract. Always current, nothing hardcoded." },
+                { iconSrc: "/clicking.webp", trigger: "hover", title: "One-Click Wrapping",     bg: "#5b4b8a", color:"#ffffff", desc: "One approval, one transaction. No complex setup, no multistep flows. Connect your wallet and wrap in under 30 seconds." },
+                { iconSrc: "/encrypted.jpeg", trigger: "hover", title: "Encrypted Balances",    bg: "#0d3b2e", color:"#ffffff", desc: "Your cToken balance is FHE-encrypted on-chain. No block explorer or wallet scanner can read it. Only you can." },
+                { iconSrc: "/clients.jpeg", trigger: "hover", title: "Client-Side Decryption",bg: "#e8dfd0", color:"#2a2a2a", desc: "Hit Reveal and your balance decrypts locally using your wallet signature. The plaintext never touches a server." },
+                { iconSrc: "/analytic.jpeg", trigger: "hover", title: "TVS Analytics",         bg: "#ef9b86", color:"#2a2a2a", desc: "Track Total Value Shielded per wrapper in real time. Wrap and unwrap volume, top pairs, all queried directly from the contract." },
+                { iconSrc: "/faucet.jpeg", trigger: "hover", title: "Sepolia Faucet",        bg: "#caa3f0", color:"#000000", desc: "Testing on testnet? Request free cUSDT mock tokens instantly. One request per wallet every 24 hours, contract-enforced." },
+              ].map((f, i) => (
                 <div className="feature-item" key={f.title} style={{ backgroundColor: f.bg, color: f.color }}>
-                  <div className="feature-icon" aria-hidden="true">
-                    <lord-icon
+                  
+                    {/* <lord-icon
                       src={f.iconSrc}
                       trigger={f.trigger}
                       state={f.state}
                       style={{ width: "70px", height: "70px" }}
+                    /> */}
+                    <Image
+                      src={f.iconSrc}
+                      alt={f.title}
+                      width={70}
+                      height={70}
+                      className="feature-icon-image"
+                      priority={i < 2}
                     />
-                  </div>
+                  
                   <h3 className="feature-title">{f.title}</h3>
                   <p className="feature-desc">{f.desc}</p>
                 </div>
