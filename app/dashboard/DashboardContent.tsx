@@ -19,7 +19,7 @@ export default function DashboardContent() {
   const { login, authenticated } = usePrivy();
   const { address } = useAccount();
 
-  const totalTVS = tvsData?.totalUSD;
+
   const topPairs = pairs.filter((p) => p.isValid).slice(0, 6);
 
   return (
@@ -37,7 +37,7 @@ export default function DashboardContent() {
                 {tvsLoading ? (
                   <div className="h-10 w-40 bg-gray-100 rounded-lg animate-pulse" />
                 ) : (
-                  formatUSD(totalTVS ?? null)
+                  "Shielded Assets"
                 )}
               </div>
               <p className="text-sm text-gray-500 mt-1">Total Value Shielded</p>
@@ -95,16 +95,22 @@ export default function DashboardContent() {
                       </div>
                     </div>
 
-                    {pair.tvs && (
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-gray-900">
-                          {formatUSD(pair.tvs.tvsUSD)}
+                    {(() => {
+                      const supply = tvsData?.byToken.find(
+                        (s) => s.wrapperAddress === pair.wrapperAddress
+                      );
+                      if (!supply) return null;
+                      return (
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {supply.formattedSupply}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {supply.formattedUnderlying}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {pair.tvs.formattedAmount} {pair.wrapperSymbol}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <svg
                       viewBox="0 0 24 24"

@@ -1,27 +1,17 @@
-// lib/constants.ts
-// Location: latise/lib/constants.ts
-// Single source of truth for all contract addresses, chain configs,
-// token lists, and app-wide timing/limits.
-// NEVER hardcode addresses anywhere else — always import from here.
+// app/lib/constants.ts
+// Location: latise/app/lib/constants.ts
 
 import type { Network, NetworkConfig, FaucetToken } from "@/app/types";
-
-// ─── Chain IDs ────────────────────────────────────────────────────────────────
 
 export const CHAIN_IDS = {
   sepolia: 11155111,
   mainnet: 1,
 } as const;
 
-// ─── Registry Contract Addresses ─────────────────────────────────────────────
-// Source: https://docs.zama.org/protocol/protocol-apps/addresses
-
 export const REGISTRY_ADDRESS: Record<Network, `0x${string}`> = {
   sepolia: "0x2f0750Bbb0A246059d80e94c454586a7F27a128e",
   mainnet: "0xeb5015fF021DB115aCe010f23F55C2591059bBA0",
 };
-
-// ─── Network Configs ──────────────────────────────────────────────────────────
 
 export const NETWORK_CONFIGS: Record<Network, NetworkConfig> = {
   sepolia: {
@@ -33,7 +23,7 @@ export const NETWORK_CONFIGS: Record<Network, NetworkConfig> = {
       process.env.NEXT_PUBLIC_RELAYER_URL_SEPOLIA ??
       "http://localhost:3000/api/relayer/11155111",
     etherscanBaseUrl: "https://sepolia.etherscan.io",
-    blockTime: 12, // seconds
+    blockTime: 12,
     isTestnet: true,
   },
   mainnet: {
@@ -49,10 +39,6 @@ export const NETWORK_CONFIGS: Record<Network, NetworkConfig> = {
     isTestnet: false,
   },
 };
-
-// ─── Sepolia Mock Wrappers ────────────────────────────────────────────────────
-// These tokens have a public mint() on their underlying ERC-20.
-// Used by the Faucet page. Sepolia only.
 
 export const SEPOLIA_MOCK_TOKENS: FaucetToken[] = [
   {
@@ -113,9 +99,6 @@ export const SEPOLIA_MOCK_TOKENS: FaucetToken[] = [
   },
 ];
 
-// ─── Mainnet Wrappers ─────────────────────────────────────────────────────────
-// Real tokens — no public mint. Used for reference / address lookups.
-
 export const MAINNET_WRAPPERS = [
   {
     symbol: "cUSDC",
@@ -135,36 +118,7 @@ export const MAINNET_WRAPPERS = [
     wrapperAddress: "0xda9396b82634Ea99243cE51258B6A5Ae512D4893" as `0x${string}`,
     underlyingAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as `0x${string}`,
   },
-  {
-    symbol: "cBRON",
-    underlyingSymbol: "BRON",
-    wrapperAddress: "0x85dE671c3bec1aDeD752c3Cea943521181C826bc" as `0x${string}`,
-    underlyingAddress: "" as `0x${string}`,
-  },
-  {
-    symbol: "cZAMA",
-    underlyingSymbol: "ZAMA",
-    wrapperAddress: "0x80CB147Fd86dC6dEe3Eee7e4Cee33d1397d98071" as `0x${string}`,
-    underlyingAddress: "0xA12CC123ba206d4031D1c7f6223D1C2Ec249f4f3" as `0x${string}`,
-  },
-  {
-    symbol: "ctGBP",
-    underlyingSymbol: "tGBP",
-    wrapperAddress: "0xa873750ccBafD5ec7Dd13bfD5237d7129832eDD9" as `0x${string}`,
-    underlyingAddress: "" as `0x${string}`,
-  },
-  {
-    symbol: "cXAUt",
-    underlyingSymbol: "XAUt",
-    wrapperAddress: "0x73cc9aF9d6BEFdb3c3fAf8a5E8c05Cb95FdaEEf1" as `0x${string}`,
-    underlyingAddress: "" as `0x${string}`,
-  },
 ] as const;
-
-// ─── CoinGecko Price IDs ──────────────────────────────────────────────────────
-// Maps underlying token symbol -> CoinGecko coin ID.
-// Tokens not listed on CoinGecko are mapped to null — show token units only,
-// never show $0 for an unknown price.
 
 export const COINGECKO_IDS: Record<string, string | null> = {
   USDC: "usd-coin",
@@ -173,7 +127,7 @@ export const COINGECKO_IDS: Record<string, string | null> = {
   USDTMock: "tether",
   WETH: "weth",
   WETHMock: "weth",
-  ZAMA: null,       // may not be listed — handle gracefully
+  ZAMA: null,
   ZAMAMock: null,
   BRON: null,
   BRONMock: null,
@@ -183,66 +137,56 @@ export const COINGECKO_IDS: Record<string, string | null> = {
   XAUtMock: "tether-gold",
 };
 
-// ─── Faucet ───────────────────────────────────────────────────────────────────
-
-/**
- * Amount to mint per faucet call.
- * 1,000,000 in token display units — multiply by 10^decimals when calling mint().
- */
 export const FAUCET_MINT_AMOUNT = 1_000_000n;
 
-// ─── Polling / Refresh Intervals ─────────────────────────────────────────────
-
 export const INTERVALS = {
-  /** How often to refetch the registry pair list (ms) */
-  REGISTRY_REFRESH_MS: 60_000,
-  /** How often to refetch TVS data (ms) */
-  TVS_REFRESH_MS: 30_000,
-  /** How often to refetch balances (ms) */
-  BALANCE_REFRESH_MS: 15_000,
-  /** How often to poll for UnwrapRequested event during pending_decrypt (ms) */
-  UNWRAP_POLL_MS: 3_000,
-  /** Give up waiting for UnwrapFinalized after this many ms */
-  UNWRAP_POLL_TIMEOUT_MS: 120_000,
-  /** How long to cache volume/event data (ms) */
-  VOLUME_CACHE_MS: 300_000,
-  /** How long to cache token prices (ms) */
-  PRICE_CACHE_MS: 60_000,
+  // Registry pairs rarely change — cache aggressively
+  REGISTRY_REFRESH_MS: 5 * 60 * 1000,      // 5 min
+  // Wrapper metadata (rate, decimals) never changes
+  METADATA_REFRESH_MS: 10 * 60 * 1000,     // 10 min
+  // Balances need to be somewhat fresh
+  BALANCE_REFRESH_MS: 30_000,              // 30 sec
+  // Unwrap polling — keep short
+  UNWRAP_POLL_MS: 5_000,                   // 5 sec (was 3s — save CUs)
+  UNWRAP_POLL_TIMEOUT_MS: 180_000,         // 3 min (was 2 min)
+  // Events are expensive — cache them hard
+  VOLUME_CACHE_MS: 10 * 60 * 1000,        // 10 min
+  // Prices: 2 min is plenty
+  PRICE_CACHE_MS: 2 * 60 * 1000,          // 2 min
 } as const;
 
-// ─── Event Log Block Ranges ───────────────────────────────────────────────────
+// ── Block ranges ──────────────────────────────────────────────────────────────
+// Alchemy's getLogs limit is 2000 blocks per call on free tier.
+// We use 1500 to stay safely under.
+// For 7-day lookback: ~50,400 blocks — we paginate automatically.
+// BUT: 50,400 / 1500 = 33 RPC calls per wrapper × 7 wrappers = 231 calls.
+// That blows the Alchemy budget instantly.
+//
+// FIX: Default to 3 days (~21,600 blocks), page size 2000.
+// 21,600 / 2000 = ~11 pages × 7 wrappers = 77 calls — still a lot.
+// For transactions page we further reduce to 1 day (~7,200 blocks).
 
-/**
- * Approximate number of blocks covering 7 days.
- * 12s per block => 7 * 24 * 3600 / 12 = 50400 blocks.
- * Infura limits getLogs to 10,000 blocks per call — pagination is handled
- * in lib/events.ts.
- */
-export const BLOCKS_PER_7_DAYS = 50_400n;
-export const INFURA_MAX_BLOCK_RANGE = 10n;
+export const BLOCKS_PER_3_DAYS = 21_600n;
+export const BLOCKS_PER_1_DAY = 7_200n;
+export const ALCHEMY_MAX_BLOCK_RANGE = 2_000n; // Safe for Alchemy free tier
 
-// ─── Error Message Map ────────────────────────────────────────────────────────
-// Maps Solidity custom error names to user-facing messages.
+/** @deprecated Use ALCHEMY_MAX_BLOCK_RANGE */
+export const INFURA_MAX_BLOCK_RANGE = ALCHEMY_MAX_BLOCK_RANGE;
+/** @deprecated Use BLOCKS_PER_3_DAYS */
+export const BLOCKS_PER_7_DAYS = BLOCKS_PER_3_DAYS;
 
 export const CONTRACT_ERRORS: Record<string, string> = {
   TokenZeroAddress: "Invalid token address.",
   ConfidentialTokenZeroAddress: "Invalid wrapper address.",
-  RevokedConfidentialToken:
-    "This wrapper has been revoked and cannot be used.",
+  RevokedConfidentialToken: "This wrapper has been revoked and cannot be used.",
   TransferAmountExceedsBalance: "Insufficient balance.",
-  InsufficientAllowance:
-    "Please approve this amount before wrapping.",
-  ExcessiveInputAmount:
-    "Amount exceeds the wrapper's maximum input limit.",
-  AmountTooSmall:
-    "Amount is too small — minimum 1 underlying token unit.",
+  InsufficientAllowance: "Please approve this amount before wrapping.",
+  ExcessiveInputAmount: "Amount exceeds the wrapper's maximum input limit.",
+  AmountTooSmall: "Amount is too small — minimum 1 underlying token unit.",
   UnsupportedAccount:
     "This account has never interacted with the wrapper. Please wrap first.",
 };
 
-// ─── localStorage Keys ────────────────────────────────────────────────────────
-
-/** Returns the localStorage key for a pending unwrap operation */
 export function pendingUnwrapKey(
   chainId: number,
   wrapperAddress: string,
@@ -251,25 +195,19 @@ export function pendingUnwrapKey(
   return `pendingUnwrap:${chainId}:${wrapperAddress.toLowerCase()}:${userAddress.toLowerCase()}`;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Returns the Etherscan URL for a transaction */
 export function etherscanTx(hash: string, network: Network): string {
   return `${NETWORK_CONFIGS[network].etherscanBaseUrl}/tx/${hash}`;
 }
 
-/** Returns the Etherscan URL for an address */
 export function etherscanAddress(address: string, network: Network): string {
   return `${NETWORK_CONFIGS[network].etherscanBaseUrl}/address/${address}`;
 }
 
-/** Truncates an Ethereum address for display: 0x1234...5678 */
 export function truncateAddress(address: string): string {
   if (!address || address.length < 10) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-/** Resolves network string from URL param — defaults to "sepolia" */
 export function parseNetworkParam(param: string | undefined): Network {
   if (param === "mainnet") return "mainnet";
   return "sepolia";

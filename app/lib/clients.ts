@@ -1,52 +1,69 @@
-// lib/clients.ts
-// Location: latise/lib/clients.ts
-// Factory functions for viem public clients.
-// Public clients are READ-ONLY — used for readContract, multicall, getLogs.
-// Write operations (transactions) go through wagmi's useWriteContract hook.
+// app/lib/clients.ts
+// Location: latise/app/lib/clients.ts
 //
-// These clients are created fresh per call (not singletons) so they always
-// pick up the latest env vars. At the volume of calls in this app that's fine.
+// Singleton viem PublicClients — created once per process, reused everywhere.
+// Singletons mean one persistent HTTP connection pool instead of a new one
+// per request, which is critical for Alchemy's compute unit budget.
+//
+// Retry strategy: exponential backoff starting at 2s, max 5 attempts.
+// This handles Alchemy's "exceeded compute units per second" 429s gracefully.
 
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, fallback } from "viem";
 import { sepolia, mainnet } from "viem/chains";
-import { NETWORK_CONFIGS } from "@/app/lib/constants";
 import type { Network } from "@/app/types";
 
-/**
- * Returns a viem PublicClient for the given network.
- * Used server-side (API routes) and in lib/* helper functions.
- *
- * For client-side reads inside React components, use wagmi's
- * usePublicClient() hook instead — it stays in sync with the
- * connected wallet's chain.
- */
-export function getPublicClient(network: Network) {
-  const config = NETWORK_CONFIGS[network];
+// ── Retry transport with exponential backoff ──────────────────────────────────
+// Alchemy rate-limits at the CU/second level.
+// We space retries out: 2s, 4s, 8s, 16s, 30s (capped).
 
-  if (network === "sepolia") {
-    return createPublicClient({
-      chain: sepolia,
-      transport: http(config.rpcUrl, {
-        // Retry up to 3 times on transient RPC errors (rate limits, timeouts)
-        retryCount: 3,
-        retryDelay: 1000,
-      }),
-    });
+function makeTransport(rpcUrl: string) {
+  if (!rpcUrl) {
+    throw new Error("Missing RPC URL for transport");
   }
 
-  return createPublicClient({
-    chain: mainnet,
-    transport: http(config.rpcUrl, {
-      retryCount: 3,
-      retryDelay: 1000,
-    }),
+  return http(rpcUrl, {
+    retryCount: 5,
+
+    // viem expects a NUMBER, not a function
+    retryDelay: 2000, // base delay (viem handles retries internally)
+
+    timeout: 30_000,
+
+    batch: {
+      batchSize: 20,
+      wait: 16,
+    },
   });
 }
 
-/**
- * Returns a viem PublicClient keyed by chain ID.
- * Useful when you have the chainId from wagmi and need a public client.
- */
+// Singletons — one per network per process
+let _sepoliaClient: ReturnType<typeof createPublicClient> | null = null;
+let _mainnetClient: ReturnType<typeof createPublicClient> | null = null;
+
+export function getPublicClient(network: Network) {
+  if (network === "sepolia") {
+    if (!_sepoliaClient) {
+      _sepoliaClient = createPublicClient({
+        chain: sepolia,
+        transport: makeTransport(
+          process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL!
+        ),
+      });
+    }
+    return _sepoliaClient;
+  }
+
+  if (!_mainnetClient) {
+    _mainnetClient = createPublicClient({
+      chain: mainnet,
+      transport: makeTransport(
+        process.env.NEXT_PUBLIC_MAINNET_RPC_URL!
+      ),
+    });
+  }
+  return _mainnetClient;
+}
+
 export function getPublicClientByChainId(chainId: number) {
   if (chainId === 11155111) return getPublicClient("sepolia");
   if (chainId === 1) return getPublicClient("mainnet");

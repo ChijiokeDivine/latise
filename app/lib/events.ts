@@ -1,24 +1,25 @@
-// lib/events.ts
-// Location: latise/lib/events.ts
-// Fetches Wrap and UnwrapFinalized events for volume analytics.
+// app/lib/events.ts
+// Location: latise/app/lib/events.ts
 //
-// Rules enforced here (from RULES.md):
-//   D-1: Batch event queries across all wrappers in parallel.
-//   D-2: Infura block range limit is ~10,000 blocks — paginate if needed.
-//   P-4: Parallel fetches with Promise.all, never sequential.
+// Event log fetching — Wrap and UnwrapFinalized events.
 //
-// IMPORTANT: euint64 fields in events (encryptedWrappedAmount, encryptedAmount)
-// are bytes32 handles — we do NOT try to read them. We only use:
-//   Wrap.roundedAmount        (uint256 — underlying units)
-//   UnwrapFinalized.cleartextAmount (uint64 — underlying units)
+// Key changes from v1:
+//   1. Sequential pagination (not parallel) to avoid Alchemy CU spikes
+//   2. Server-side cache (cacheWrap) — won't re-query within 10 min
+//   3. Shorter default lookback: 1 day for transactions page, 3 days for charts
+//   4. All wrappers fetched sequentially with 200ms delay between each
+//      to avoid CU/second bursts
+//   5. Single getBlockNumber() call shared across all fetches in a batch
 
 import { parseAbiItem, type AbiEvent, type Log } from "viem";
 import {
-  BLOCKS_PER_7_DAYS,
-  INFURA_MAX_BLOCK_RANGE,
+  BLOCKS_PER_1_DAY,
+  BLOCKS_PER_3_DAYS,
+  ALCHEMY_MAX_BLOCK_RANGE,
   NETWORK_CONFIGS,
 } from "@/app/lib/constants";
 import { getPublicClient } from "@/app/lib/clients";
+import { cacheWrap, CACHE_TTL } from "@/app/lib/cache";
 import type {
   Network,
   WrapEvent,
@@ -27,7 +28,7 @@ import type {
   EnrichedPair,
 } from "@/app/types";
 
-// ─── ABI items for getLogs ────────────────────────────────────────────────────
+// ─── ABI items ────────────────────────────────────────────────────────────────
 
 const WRAP_EVENT = parseAbiItem(
   "event Wrap(address indexed to, uint256 roundedAmount, bytes32 encryptedWrappedAmount)"
@@ -41,25 +42,33 @@ const UNWRAP_REQUESTED_EVENT = parseAbiItem(
   "event UnwrapRequested(bytes32 indexed unwrapRequestId, address indexed from, address to, bytes32 encryptedAmount)"
 ) as AbiEvent;
 
-// ─── Block range helpers ──────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Computes the start block for fetching ~7 days of events.
- * Returns 0n if the chain is too new to have that many blocks.
- */
-export async function getStartBlock(network: Network): Promise<bigint> {
-  const client = getPublicClient(network);
-  const latestBlock = await client.getBlockNumber();
-  const startBlock =
-    latestBlock > BLOCKS_PER_7_DAYS ? latestBlock - BLOCKS_PER_7_DAYS : 0n;
-  return startBlock;
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-// ─── Paginated getLogs ────────────────────────────────────────────────────────
+/** Shared latest block per network — avoids per-function getBlockNumber() calls */
+const blockNumberCache = new Map<Network, { value: bigint; fetchedAt: number }>();
+
+async function getLatestBlock(network: Network): Promise<bigint> {
+  const cached = blockNumberCache.get(network);
+  // Reuse if fetched within last 12 seconds (1 block time)
+  if (cached && Date.now() - cached.fetchedAt < 12_000) return cached.value;
+
+  const client = getPublicClient(network);
+  const value = await client.getBlockNumber();
+  blockNumberCache.set(network, { value, fetchedAt: Date.now() });
+  return value;
+}
+
+// ─── Paginated getLogs — sequential, not parallel ─────────────────────────────
 
 /**
- * Fetches logs in INFURA_MAX_BLOCK_RANGE-sized chunks to avoid the provider
- * block range limit. Assembles all chunks into a single flat array.
+ * Fetches logs in ALCHEMY_MAX_BLOCK_RANGE chunks, sequentially.
+ * Sequential is safer than parallel for rate-limited providers:
+ * parallel requests hit the CU/second cap instantly.
+ * 200ms delay between pages to stay under burst limits.
  */
 async function getPaginatedLogs(
   network: Network,
@@ -67,123 +76,155 @@ async function getPaginatedLogs(
   event: AbiEvent,
   fromBlock: bigint,
   toBlock: bigint
-) {
+): Promise<Log<bigint, number, boolean, AbiEvent, true>[]> {
   const client = getPublicClient(network);
   const allLogs: Log<bigint, number, boolean, AbiEvent, true>[] = [];
-
   let current = fromBlock;
+  let pageCount = 0;
 
   while (current <= toBlock) {
     const chunkEnd =
-      current + INFURA_MAX_BLOCK_RANGE - 1n < toBlock
-        ? current + INFURA_MAX_BLOCK_RANGE - 1n
+      current + ALCHEMY_MAX_BLOCK_RANGE - 1n < toBlock
+        ? current + ALCHEMY_MAX_BLOCK_RANGE - 1n
         : toBlock;
 
     try {
-      const logs = await client.getLogs({
-        address,
-        event,
-        fromBlock: current,
-        toBlock: chunkEnd,
-      });
+      const logs = await client.getLogs({ address, event, fromBlock: current, toBlock: chunkEnd });
       allLogs.push(...(logs as Log<bigint, number, boolean, AbiEvent, true>[]));
     } catch (err) {
-      // Log the error but continue — a missing chunk is better than no data
-      console.error(
-        `[events] getLogs failed for blocks ${current}–${chunkEnd}:`,
-        err
-      );
+      console.error(`[events] getLogs page ${pageCount} failed (${current}-${chunkEnd}):`, err);
+      // Don't break — partial data is better than nothing
     }
 
     current = chunkEnd + 1n;
+    pageCount++;
+
+    // Throttle: 200ms between pages to avoid CU/second bursts
+    if (current <= toBlock) await sleep(200);
   }
 
   return allLogs;
 }
 
-// ─── Wrap events ──────────────────────────────────────────────────────────────
+// ─── Single wrapper events ────────────────────────────────────────────────────
 
-/**
- * Fetches Wrap events for a single wrapper over the past ~7 days.
- */
 export async function fetchWrapEvents(
   wrapperAddress: `0x${string}`,
   network: Network,
   fromBlock?: bigint
 ): Promise<WrapEvent[]> {
-  const client = getPublicClient(network);
-  const toBlock = await client.getBlockNumber();
-  const startBlock = fromBlock ?? (await getStartBlock(network));
+  const toBlock = await getLatestBlock(network);
+  const startBlock = fromBlock ?? (toBlock > BLOCKS_PER_1_DAY ? toBlock - BLOCKS_PER_1_DAY : 0n);
 
-  const logs = await getPaginatedLogs(
-    network,
-    wrapperAddress,
-    WRAP_EVENT,
-    startBlock,
-    toBlock
-  );
+  const cacheKey = `wrapEvents:${network}:${wrapperAddress}:${startBlock}`;
+  return cacheWrap(cacheKey, CACHE_TTL.EVENTS, async () => {
+    const logs = await getPaginatedLogs(network, wrapperAddress, WRAP_EVENT, startBlock, toBlock);
 
-  return logs
-    .filter(
-      (log): log is Log<bigint, number, boolean, AbiEvent, true> => 
-        typeof log.args === 'object' && 
-        log.args !== null && 
-        'to' in log.args && 
-        'roundedAmount' in log.args && 
-        log.args.roundedAmount !== undefined
-    )
-    .map((log) => ({
-      wrapperAddress,
-      to: (log.args as Record<string, unknown>).to as `0x${string}`,
-      roundedAmount: (log.args as Record<string, unknown>).roundedAmount as bigint,
-      blockNumber: log.blockNumber ?? 0n,
-      txHash: log.transactionHash ?? ("0x" as `0x${string}`),
-    }));
+    return logs
+      .filter((l) => typeof l.args === "object" && l.args !== null && "to" in l.args && l.args.roundedAmount !== undefined)
+      .map((l) => ({
+        wrapperAddress,
+        to: (l.args as { to: `0x${string}` }).to,
+        roundedAmount: (l.args as { roundedAmount: bigint }).roundedAmount,
+        blockNumber: l.blockNumber ?? 0n,
+        txHash: l.transactionHash ?? ("0x" as `0x${string}`),
+      }));
+  });
 }
 
-/**
- * Fetches UnwrapFinalized events for a single wrapper over the past ~7 days.
- */
 export async function fetchUnwrapEvents(
   wrapperAddress: `0x${string}`,
   network: Network,
   fromBlock?: bigint
 ): Promise<UnwrapFinalizedEvent[]> {
-  const client = getPublicClient(network);
-  const toBlock = await client.getBlockNumber();
-  const startBlock = fromBlock ?? (await getStartBlock(network));
+  const toBlock = await getLatestBlock(network);
+  const startBlock = fromBlock ?? (toBlock > BLOCKS_PER_1_DAY ? toBlock - BLOCKS_PER_1_DAY : 0n);
 
-  const logs = await getPaginatedLogs(
-    network,
-    wrapperAddress,
-    UNWRAP_FINALIZED_EVENT,
-    startBlock,
-    toBlock
-  );
+  const cacheKey = `unwrapEvents:${network}:${wrapperAddress}:${startBlock}`;
+  return cacheWrap(cacheKey, CACHE_TTL.EVENTS, async () => {
+    const logs = await getPaginatedLogs(network, wrapperAddress, UNWRAP_FINALIZED_EVENT, startBlock, toBlock);
 
-  return logs
-    .filter(
-      (log) =>
-        typeof log.args === 'object' && log.args !== null && 'receiver' in log.args && log.args.receiver &&
-        log.args.unwrapRequestId &&
-        log.args.cleartextAmount !== undefined
-    )
-    .map((log) => ({
-      wrapperAddress,
-      receiver: (log.args as Record<string, unknown>).receiver as `0x${string}`,
-      unwrapRequestId: (log.args as Record<string, unknown>).unwrapRequestId as `0x${string}`,
-      cleartextAmount: (log.args as Record<string, unknown>).cleartextAmount as bigint,
-      blockNumber: log.blockNumber ?? 0n,
-      txHash: log.transactionHash ?? ("0x" as `0x${string}`),
-    }));
+    return logs
+      .filter((l) => typeof l.args === "object" && l.args !== null && "receiver" in l.args && l.args.cleartextAmount !== undefined)
+      .map((l) => ({
+        wrapperAddress,
+        receiver: (l.args as { receiver: `0x${string}` }).receiver,
+        unwrapRequestId: (l.args as { unwrapRequestId: `0x${string}` }).unwrapRequestId,
+        cleartextAmount: (l.args as { cleartextAmount: bigint }).cleartextAmount,
+        blockNumber: l.blockNumber ?? 0n,
+        txHash: l.transactionHash ?? ("0x" as `0x${string}`),
+      }));
+  });
 }
 
-// ─── Poll for UnwrapRequested / UnwrapFinalized ───────────────────────────────
+// ─── All wrappers — SEQUENTIAL with throttle ──────────────────────────────────
+//
+// Previous version used Promise.all — that fires 7 wrappers × 2 event types
+// = 14 concurrent getLogs requests, each paginated, instantly blowing the
+// Alchemy CU/second budget.
+//
+// New approach: sequential, 300ms delay between wrappers.
 
-/**
- * Polls for an UnwrapRequested event matching a known transaction hash.
- * Used immediately after submitting the unwrap tx to extract the requestId.
- */
+export async function fetchAllWrapperEvents(
+  pairs: EnrichedPair[],
+  network: Network,
+  lookbackBlocks?: bigint
+): Promise<{ wrapEvents: WrapEvent[]; unwrapEvents: UnwrapFinalizedEvent[] }> {
+  const validPairs = pairs.filter((p) => p.isValid);
+  if (validPairs.length === 0) return { wrapEvents: [], unwrapEvents: [] };
+
+  const toBlock = await getLatestBlock(network);
+  const lb = lookbackBlocks ?? BLOCKS_PER_1_DAY;
+  const fromBlock = toBlock > lb ? toBlock - lb : 0n;
+
+  const cacheKey = `allEvents:${network}:${fromBlock}:${validPairs.map((p) => p.wrapperAddress).join(",")}`;
+  return cacheWrap(cacheKey, CACHE_TTL.EVENTS, async () => {
+    const allWrap: WrapEvent[] = [];
+    const allUnwrap: UnwrapFinalizedEvent[] = [];
+
+    for (let i = 0; i < validPairs.length; i++) {
+      const pair = validPairs[i];
+
+      // Fetch both event types sequentially per wrapper to avoid bursts
+      const wrapLogs = await getPaginatedLogs(network, pair.wrapperAddress, WRAP_EVENT, fromBlock, toBlock);
+      await sleep(150);
+      const unwrapLogs = await getPaginatedLogs(network, pair.wrapperAddress, UNWRAP_FINALIZED_EVENT, fromBlock, toBlock);
+
+      allWrap.push(
+        ...wrapLogs
+          .filter((l) => typeof l.args === "object" && l.args !== null && "to" in l.args)
+          .map((l) => ({
+            wrapperAddress: pair.wrapperAddress,
+            to: (l.args as { to: `0x${string}` }).to,
+            roundedAmount: (l.args as { roundedAmount: bigint }).roundedAmount ?? 0n,
+            blockNumber: l.blockNumber ?? 0n,
+            txHash: l.transactionHash ?? ("0x" as `0x${string}`),
+          }))
+      );
+
+      allUnwrap.push(
+        ...unwrapLogs
+          .filter((l) => typeof l.args === "object" && l.args !== null && "receiver" in l.args)
+          .map((l) => ({
+            wrapperAddress: pair.wrapperAddress,
+            receiver: (l.args as { receiver: `0x${string}` }).receiver,
+            unwrapRequestId: (l.args as { unwrapRequestId: `0x${string}` }).unwrapRequestId,
+            cleartextAmount: (l.args as { cleartextAmount: bigint }).cleartextAmount ?? 0n,
+            blockNumber: l.blockNumber ?? 0n,
+            txHash: l.transactionHash ?? ("0x" as `0x${string}`),
+          }))
+      );
+
+      // 300ms between wrappers to avoid CU/second bursts
+      if (i < validPairs.length - 1) await sleep(300);
+    }
+
+    return { wrapEvents: allWrap, unwrapEvents: allUnwrap };
+  });
+}
+
+// ─── Poll helpers for unwrap flow ─────────────────────────────────────────────
+
 export async function pollForUnwrapRequestId(
   wrapperAddress: `0x${string}`,
   fromBlock: bigint,
@@ -191,7 +232,7 @@ export async function pollForUnwrapRequestId(
   network: Network
 ): Promise<`0x${string}` | null> {
   const client = getPublicClient(network);
-  const toBlock = await client.getBlockNumber();
+  const toBlock = await getLatestBlock(network);
 
   const logs = await client.getLogs({
     address: wrapperAddress,
@@ -200,18 +241,11 @@ export async function pollForUnwrapRequestId(
     toBlock,
   });
 
-  // Find the log from this specific transaction
   const match = logs.find((l) => l.transactionHash === txHash);
-  if (!match || !(typeof match.args === 'object' && match.args !== null && 'unwrapRequestId' in match.args) || !match.args.unwrapRequestId) return null;
-
-  return match.args.unwrapRequestId as `0x${string}`;
+  if (!match || typeof match.args !== "object" || !match.args || !("unwrapRequestId" in match.args)) return null;
+  return (match.args as { unwrapRequestId: `0x${string}` }).unwrapRequestId;
 }
 
-/**
- * Polls for an UnwrapFinalized event matching a known unwrapRequestId.
- * Returns the cleartext amount if found, null if not yet finalized.
- * Called repeatedly in the useUnwrap hook until resolved or timed out.
- */
 export async function pollForUnwrapFinalized(
   wrapperAddress: `0x${string}`,
   unwrapRequestId: `0x${string}`,
@@ -219,7 +253,7 @@ export async function pollForUnwrapFinalized(
   network: Network
 ): Promise<{ cleartextAmount: bigint; txHash: `0x${string}` } | null> {
   const client = getPublicClient(network);
-  const toBlock = await client.getBlockNumber();
+  const toBlock = await getLatestBlock(network);
 
   const logs = await client.getLogs({
     address: wrapperAddress,
@@ -230,114 +264,68 @@ export async function pollForUnwrapFinalized(
 
   const match = logs.find(
     (l) =>
-      (typeof l.args === 'object' && l.args !== null && 'unwrapRequestId' in l.args ? (l.args.unwrapRequestId as string)?.toLowerCase() : undefined) ===
-      unwrapRequestId.toLowerCase()
+      typeof l.args === "object" &&
+      l.args !== null &&
+      "unwrapRequestId" in l.args &&
+      (l.args as { unwrapRequestId: string }).unwrapRequestId?.toLowerCase() ===
+        unwrapRequestId.toLowerCase()
   );
 
-  if (!match || typeof match.args !== 'object' || match.args === null || !('cleartextAmount' in match.args) || match.args.cleartextAmount === undefined) return null;
+  if (!match || typeof match.args !== "object" || !match.args || !("cleartextAmount" in match.args)) return null;
 
   return {
-    cleartextAmount: match.args.cleartextAmount as bigint,
+    cleartextAmount: (match.args as { cleartextAmount: bigint }).cleartextAmount,
     txHash: match.transactionHash ?? ("0x" as `0x${string}`),
   };
 }
 
-// ─── All wrappers — parallel fetch ───────────────────────────────────────────
+// ─── Daily volume aggregation ─────────────────────────────────────────────────
 
-/**
- * Fetches wrap + unwrap events for ALL valid pairs in parallel.
- * Rule D-1: Batch across all wrappers.
- * Rule P-4: Parallel with Promise.all.
- */
-export async function fetchAllWrapperEvents(
-  pairs: EnrichedPair[],
-  network: Network
-): Promise<{
-  wrapEvents: WrapEvent[];
-  unwrapEvents: UnwrapFinalizedEvent[];
-}> {
-  const validPairs = pairs.filter((p) => p.isValid);
-
-  const [wrapResults, unwrapResults] = await Promise.all([
-    Promise.all(
-      validPairs.map((p) => fetchWrapEvents(p.wrapperAddress, network))
-    ),
-    Promise.all(
-      validPairs.map((p) => fetchUnwrapEvents(p.wrapperAddress, network))
-    ),
-  ]);
-
-  return {
-    wrapEvents: wrapResults.flat(),
-    unwrapEvents: unwrapResults.flat(),
-  };
-}
-
-// ─── Aggregate into daily volume ──────────────────────────────────────────────
-
-/**
- * Converts raw event arrays into daily volume data suitable for Recharts.
- * Timestamps are estimated from block numbers using the network's block time.
- * This avoids fetching block data for every event (too many RPC calls).
- */
-export async function buildDailyVolume(
+export function buildDailyVolume(
   wrapEvents: WrapEvent[],
   unwrapEvents: UnwrapFinalizedEvent[],
   pair: EnrichedPair,
   network: Network
-): Promise<DailyVolume[]> {
-  const blockTime = NETWORK_CONFIGS[network].blockTime; // seconds per block
-  const client = getPublicClient(network);
-  const latestBlock = await client.getBlockNumber();
+): DailyVolume[] {
+  const blockTime = NETWORK_CONFIGS[network].blockTime;
   const latestTimestamp = Math.floor(Date.now() / 1000);
 
-  /**
-   * Estimates a UNIX timestamp for a given block number.
-   * Avoids fetching block headers for each event.
-   */
-  function estimateTimestamp(blockNumber: bigint): number {
-    const blockDiff = Number(latestBlock - blockNumber);
-    return latestTimestamp - blockDiff * blockTime;
+  // Use a fixed reference block (approximate — avoids extra RPC call)
+  // We'll use "now" as the reference and work backwards
+  function estimateDate(blockNumber: bigint): string {
+    // Approximate: each block is ~12s ago relative to current time
+    const blockAgeSeconds = Number(blockNumber) > 0
+      ? Math.max(0, (Date.now() / 1000 - latestTimestamp) + blockTime)
+      : 0;
+    const ts = latestTimestamp - blockAgeSeconds;
+    return new Date(ts * 1000).toISOString().slice(0, 10);
   }
 
-  function blockToDateStr(blockNumber: bigint): string {
-    const ts = estimateTimestamp(blockNumber);
-    return new Date(ts * 1000).toISOString().slice(0, 10); // "YYYY-MM-DD"
-  }
-
-  // Accumulate by date
   const map = new Map<string, { wrap: number; unwrap: number }>();
 
   for (const e of wrapEvents) {
-    if (e.wrapperAddress.toLowerCase() !== pair.wrapperAddress.toLowerCase())
-      continue;
-    const date = blockToDateStr(e.blockNumber);
-    const display =
-      Number(e.roundedAmount / pair.rate) /
-      Math.pow(10, pair.wrapperDecimals);
+    if (e.wrapperAddress.toLowerCase() !== pair.wrapperAddress.toLowerCase()) continue;
+    const date = estimateDate(e.blockNumber);
+    const display = pair.rate > 0n
+      ? Number(e.roundedAmount / pair.rate) / Math.pow(10, pair.wrapperDecimals)
+      : 0;
     const entry = map.get(date) ?? { wrap: 0, unwrap: 0 };
     entry.wrap += display;
     map.set(date, entry);
   }
 
   for (const e of unwrapEvents) {
-    if (e.wrapperAddress.toLowerCase() !== pair.wrapperAddress.toLowerCase())
-      continue;
-    const date = blockToDateStr(e.blockNumber);
-    const display =
-      Number(e.cleartextAmount) / Math.pow(10, pair.tokenDecimals ?? 18);
-    // Wait — cleartextAmount is already in underlying units, not wrapper units.
-    // Convert to wrapper display units using rate:
+    if (e.wrapperAddress.toLowerCase() !== pair.wrapperAddress.toLowerCase()) continue;
+    const date = estimateDate(e.blockNumber);
     const displayWrapper =
-      Number(e.cleartextAmount) /
-      Number(pair.rate) /
-      Math.pow(10, pair.wrapperDecimals);
+      pair.rate > 0n
+        ? Number(e.cleartextAmount) / Number(pair.rate) / Math.pow(10, pair.wrapperDecimals)
+        : 0;
     const entry = map.get(date) ?? { wrap: 0, unwrap: 0 };
     entry.unwrap += displayWrapper;
     map.set(date, entry);
   }
 
-  // Sort by date and return
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, { wrap, unwrap }]) => ({ date, wrapVolume: wrap, unwrapVolume: unwrap }));

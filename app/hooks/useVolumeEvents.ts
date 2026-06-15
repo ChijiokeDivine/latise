@@ -1,73 +1,59 @@
-// hooks/useVolumeEvents.ts
-// Location: latise/hooks/useVolumeEvents.ts
-// TanStack Query hook for fetching wrap and unwrap volume event data.
-// Used by the TVS dashboard volume chart.
+// app/hooks/useVolumeEvents.ts
+// Location: latise/app/hooks/useVolumeEvents.ts
 //
-// Rules enforced (from RULES.md):
-//   D-1: Batch queries across all wrappers (via fetchAllWrapperEvents).
-//   D-3: Cache event data for 5 minutes (INTERVALS.VOLUME_CACHE_MS).
-//   P-4: Parallel fetches inside fetchAllWrapperEvents.
+// Key changes:
+//   - staleTime raised to 10 minutes (events are cached server-side too)
+//   - refetchInterval removed — don't auto-poll events
+//   - retry: 1 (not 2) — fewer retries = fewer wasted CUs on failure
+//   - Accepts optional `enabled` flag so transactions page can lazy-load
+//   - buildDailyVolume is now sync (no extra getBlockNumber call)
 
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllWrapperEvents, buildDailyVolume } from "../lib/events";
-import { INTERVALS } from "../lib/constants";
+import { fetchAllWrapperEvents, buildDailyVolume } from "@/app/lib/events";
+import { INTERVALS } from "@/app/lib/constants";
 import type { Network, EnrichedPair, DailyVolume } from "@/app/types";
 
-/**
- * Fetches wrap + unwrap events for all valid pairs and returns
- * daily volume data per pair (for the volume chart).
- */
-export function useVolumeEvents(pairs: EnrichedPair[], network: Network) {
+export function useVolumeEvents(
+  pairs: EnrichedPair[],
+  network: Network,
+  options: { enabled?: boolean } = {}
+) {
+  const enabled = options.enabled !== false && pairs.length > 0;
+
   return useQuery({
-    queryKey: ["events", "all", network, pairs.map((p) => p.wrapperAddress)],
+    queryKey: ["events", "all", network, pairs.map((p) => p.wrapperAddress).join(",")],
     queryFn: async () => {
-      const { wrapEvents, unwrapEvents } = await fetchAllWrapperEvents(
-        pairs,
-        network
-      );
+      const { wrapEvents, unwrapEvents } = await fetchAllWrapperEvents(pairs, network);
 
-      // Build daily volume per pair
-      const dailyByPair = await Promise.all(
-        pairs
-          .filter((p) => p.isValid)
-          .map(async (pair) => ({
-            pair,
-            daily: await buildDailyVolume(wrapEvents, unwrapEvents, pair, network),
-          }))
-      );
+      const dailyByPair = pairs
+        .filter((p) => p.isValid)
+        .map((pair) => ({
+          pair,
+          daily: buildDailyVolume(wrapEvents, unwrapEvents, pair, network),
+        }));
 
-      return {
-        wrapEvents,
-        unwrapEvents,
-        dailyByPair,
-      };
+      return { wrapEvents, unwrapEvents, dailyByPair };
     },
-    enabled: pairs.length > 0,
+    enabled,
     staleTime: INTERVALS.VOLUME_CACHE_MS,
-    refetchInterval: INTERVALS.VOLUME_CACHE_MS,
-    retry: 2,
+    // No refetchInterval — events don't change rapidly, and polling is expensive
+    gcTime: INTERVALS.VOLUME_CACHE_MS,
+    retry: 1,
+    retryDelay: 5_000,
   });
 }
 
-/**
- * Returns daily volume for a single wrapper address.
- * Derived from the full useVolumeEvents query — no extra fetch.
- */
 export function usePairVolume(
   wrapperAddress: `0x${string}` | undefined,
   pairs: EnrichedPair[],
   network: Network
 ): DailyVolume[] {
   const { data } = useVolumeEvents(pairs, network);
-
   if (!data || !wrapperAddress) return [];
-
   const entry = data.dailyByPair.find(
-    (d) =>
-      d.pair.wrapperAddress.toLowerCase() === wrapperAddress.toLowerCase()
+    (d) => d.pair.wrapperAddress.toLowerCase() === wrapperAddress.toLowerCase()
   );
-
   return entry?.daily ?? [];
 }

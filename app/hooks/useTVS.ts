@@ -1,36 +1,30 @@
-// hooks/useTVS.ts
-// Location: latise/hooks/useTVS.ts
-// TanStack Query hook for Total Value Shielded data.
-// Refreshes every 30 seconds (INTERVALS.TVS_REFRESH_MS).
+// app/hooks/useTVS.ts
+// Location: latise/app/hooks/useTVS.ts
 //
-// TVS data flow:
-//   1. useRegistry fetches all enriched pairs
-//   2. useTVS reads nonConfidentialTotalSupply() + rate() via multicall
-//   3. fetchTokenPrices() fetches USD prices from CoinGecko
-//   4. Result is a ranked list + total USD TVS
+// Fetches nonConfidentialTotalSupply() for all wrappers.
+// Returns token amounts only — never USD (individual balances are private on Zama).
 
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { useRegistry } from "@/app/hooks/useRegistry";
-import { fetchAggregatedTVS } from "@/app/lib/wrapper";
+import { fetchAggregatedShieldedSupply } from "@/app/lib/wrapper";
 import { INTERVALS } from "@/app/lib/constants";
-import type { Network, AggregatedTVS } from "@/app/types";
+import type { Network, AggregatedShieldedSupply } from "@/app/types";
 
-/**
- * Fetches and caches TVS data for all valid pairs on the given network.
- * Depends on the registry query — waits for pairs before fetching TVS.
- */
-export function useTVS(network: Network) {
+export function useShieldedSupply(network: Network) {
   const { data: pairs, isSuccess: pairsReady } = useRegistry(network);
 
-  return useQuery<AggregatedTVS, Error>({
-    queryKey: ["tvs", network],
-    queryFn: () => fetchAggregatedTVS(pairs ?? [], network),
-    // Only run when pairs are loaded — no point fetching TVS without addresses
+  return useQuery<AggregatedShieldedSupply, Error>({
+    queryKey: ["shieldedSupply", network],
+    queryFn: () => fetchAggregatedShieldedSupply(pairs ?? [], network),
     enabled: pairsReady && (pairs?.length ?? 0) > 0,
-    staleTime: INTERVALS.TVS_REFRESH_MS,
-    refetchInterval: INTERVALS.TVS_REFRESH_MS,
+    staleTime: INTERVALS.VOLUME_CACHE_MS, // 10 min — supply changes slowly
+    // No refetchInterval — reduces RPC calls
     retry: 2,
+    retryDelay: (attempt) => Math.min(3_000 * 2 ** attempt, 30_000),
   });
 }
+
+// Legacy alias so existing imports don't break
+export const useTVS = useShieldedSupply;
