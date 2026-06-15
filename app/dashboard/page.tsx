@@ -369,7 +369,7 @@ function RightPanel({
             onClick={() => login()}
             className="mt-4 w-full py-3 bg-[#156640] hover:bg-[#0f4f30] text-white font-semibold rounded-xl transition"
           >
-            Connect Wallet to Shield
+            Connect Wallet
           </button>
         )}
       </div>
