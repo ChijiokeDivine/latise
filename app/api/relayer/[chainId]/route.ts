@@ -13,9 +13,10 @@ const RELAYER_URLS: Record<string, string> = {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { chainId: string } }
+  { params }: { params: Promise<{ chainId: string }> }
 ) {
-  const relayerBase = RELAYER_URLS[params.chainId];
+  const { chainId } = await params;
+  const relayerBase = RELAYER_URLS[chainId];
   if (!relayerBase) {
     return NextResponse.json({ error: "Unsupported chain" }, { status: 400 });
   }
@@ -23,7 +24,7 @@ export async function POST(
   const body = await req.text();
   // Strip our proxy prefix from the path to get the actual relayer path
   const relayerPath = req.nextUrl.pathname.replace(
-    `/api/relayer/${params.chainId}`,
+    `/api/relayer/${chainId}`,
     ""
   );
   const targetUrl = `${relayerBase}${relayerPath || "/"}`;
