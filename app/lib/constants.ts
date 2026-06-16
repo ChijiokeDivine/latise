@@ -21,7 +21,7 @@ export const NETWORK_CONFIGS: Record<Network, NetworkConfig> = {
     rpcUrl: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ?? "",
     relayerProxyUrl:
       process.env.NEXT_PUBLIC_RELAYER_URL_SEPOLIA ??
-      "http://localhost:3000/api/relayer/11155111",
+      "https://relayer.testnet.zama.ai",
     etherscanBaseUrl: "https://sepolia.etherscan.io",
     blockTime: 12,
     isTestnet: true,
@@ -33,7 +33,7 @@ export const NETWORK_CONFIGS: Record<Network, NetworkConfig> = {
     rpcUrl: process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? "",
     relayerProxyUrl:
       process.env.NEXT_PUBLIC_RELAYER_URL_MAINNET ??
-      "http://localhost:3000/api/relayer/1",
+      "https://relayer.testnet.zama.ai",
     etherscanBaseUrl: "https://etherscan.io",
     blockTime: 12,
     isTestnet: false,
