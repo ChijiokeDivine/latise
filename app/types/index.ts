@@ -107,6 +107,7 @@ export type WrapState =
 export type UnwrapState =
   | "idle"
   | "encrypting"
+  | "decrypting"
   | "submitting"
   | "pending_decrypt"
   | "finalizing"

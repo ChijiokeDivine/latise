@@ -199,7 +199,7 @@ export function useUnwrap({
 
       try {
         // ── Step 1: SDK encrypts and submits unwrap tx ──────────────────
-        setState("encrypting");
+        setState("decrypting");
 
         let unwrapTxHashFromCallback: `0x${string}` | undefined;
 
