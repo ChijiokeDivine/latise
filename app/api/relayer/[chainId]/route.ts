@@ -4,11 +4,12 @@ const RELAYER_URLS: Record<string, string> = {
   "11155111": "https://relayer.testnet.zama.cloud",
   "1": "https://relayer.mainnet.zama.cloud",
 };
+
 async function proxyRelayerRequest(
   req: NextRequest,
-  { params }: { params: Promise<{ chainId: string; path: string[] }> }
+  { params }: { params: Promise<{ chainId: string }> }
 ) {
-  const { chainId, path } = await params;
+  const { chainId } = await params;
   const baseUrl = RELAYER_URLS[chainId];
   if (!baseUrl) {
     return NextResponse.json({ error: "Unsupported chain" }, { status: 400 });
@@ -22,8 +23,7 @@ async function proxyRelayerRequest(
     );
   }
 
-  const relayerPath = path?.join("/") || "";
-  const targetUrl = new URL(relayerPath, `${baseUrl}/`);
+  const targetUrl = new URL(baseUrl);
   targetUrl.search = req.nextUrl.search;
 
   const contentType = req.headers.get("content-type");
@@ -49,14 +49,14 @@ async function proxyRelayerRequest(
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ chainId: string; path: string[] }> }
+  context: { params: Promise<{ chainId: string }> }
 ) {
   return proxyRelayerRequest(req, context);
 }
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ chainId: string; path: string[] }> }
+  context: { params: Promise<{ chainId: string }> }
 ) {
   return proxyRelayerRequest(req, context);
 }

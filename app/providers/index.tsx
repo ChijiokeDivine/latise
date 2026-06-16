@@ -34,11 +34,11 @@ const relayer = new RelayerWeb({
   getChainId: () => signer.getChainId(),
   transports: {
     [sepolia.id]: {
-      relayerUrl: process.env.NEXT_PUBLIC_RELAYER_URL_SEPOLIA!,
+      relayerUrl: "/api/relayer/11155111",
       network: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL!,
     },
     [mainnet.id]: {
-      relayerUrl: process.env.NEXT_PUBLIC_RELAYER_URL_MAINNET!,
+      relayerUrl: "/api/relayer/1",
       network: process.env.NEXT_PUBLIC_MAINNET_RPC_URL!,
     },
   },
