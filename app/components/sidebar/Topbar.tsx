@@ -15,6 +15,7 @@ export function Topbar() {
   const { address } = useAccount();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = async () => {
@@ -35,6 +36,25 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!helpModalOpen) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setHelpModalOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [helpModalOpen]);
+
   return (
     <header
       className="flex items-center gap-4 px-6 bg-white border-b border-gray-200 shrink-0"
@@ -54,7 +74,7 @@ export function Topbar() {
         </svg>
         <input
           type="text"
-          placeholder="Search for an asset"
+          placeholder="Search"
           className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#156640]/20 focus:border-[#156640] w-56 transition"
         />
       </div>
@@ -64,16 +84,14 @@ export function Topbar() {
 
       {/* Icons */}
       <div className="flex items-center gap-1">
-        {/* Bell */}
-        <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition relative">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+       
         {/* Help */}
-        <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition">
+        <button
+          type="button"
+          aria-label="Open application overview"
+          onClick={() => setHelpModalOpen(true)}
+          className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition"
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
             <circle cx="12" cy="12" r="10" />
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
@@ -164,6 +182,75 @@ export function Topbar() {
               Connect Wallet
             </button>
           )}
+        </div>
+      )}
+
+      {helpModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-950/45 px-4"
+          onClick={() => setHelpModalOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="latise-overview-title"
+            className="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
+              <div>
+              
+                <h2 id="latise-overview-title" className="mt-1 text-2xl font-semibold text-gray-900">
+                  What Latise does
+                </h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">
+                  Latise lets users shield ERC-20 tokens into confidential wrapper assets powered by FHE,
+                  monitor shielded supply across supported pairs, and manage wrap or unwrap flows from one
+                  dashboard.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close application overview"
+                onClick={() => setHelpModalOpen(false)}
+                className="ml-4 inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
+                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid gap-4 px-6 py-6 md:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <h3 className="text-sm font-semibold text-gray-900">Shield Assets</h3>
+                <p className="mt-2 text-xs leading-6 text-gray-600">
+                  Deposit supported ERC-20 tokens and mint confidential wrappers through a guided shield flow.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <h3 className="text-sm font-semibold text-gray-900">Reveal Data Safely</h3>
+                <p className="mt-2 text-xs leading-6 text-gray-600">
+                  Decrypt balances client-side with your wallet so plaintext stays under your control.
+                </p>
+              </div>
+             
+            </div>
+
+            <div className="border-t border-gray-100 px-6 py-5">
+              
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setHelpModalOpen(false)}
+                  className="rounded-xl bg-[#156640] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0f4f30]"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </header>

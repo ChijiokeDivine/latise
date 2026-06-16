@@ -2,11 +2,32 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useRegistry } from "@/app/hooks/useRegistry";
 import Link from "next/link";
 import { truncateAddress, etherscanAddress } from "@/app/lib/constants";
 import { formatTokenUnits } from "@/app/lib/format";
 import type { Network } from "@/app/types";
+
+function getTokenIconSrc(wrapperSymbol: string): string | null {
+  const tokenSymbol = wrapperSymbol.startsWith("c") ? wrapperSymbol.slice(1) : wrapperSymbol;
+
+  if (tokenSymbol === "USDCMock" || tokenSymbol === "USDTMock") {
+    return `/c${tokenSymbol}.svg`;
+  }
+  if (
+    tokenSymbol === "WETHMock" ||
+    tokenSymbol === "ZAMAMock" ||
+    tokenSymbol === "tGBPMock" ||
+    tokenSymbol === "XAUtMock"
+  ) {
+    return `/c${tokenSymbol}.png`;
+  }
+  if (tokenSymbol === "BRONMock") {
+    return `/c${tokenSymbol}.webp`;
+  }
+  return null;
+}
 
 export default function RegistryContent() {
   const searchParams = useSearchParams();
@@ -94,8 +115,18 @@ export default function RegistryContent() {
                 <tr key={pair.wrapperAddress} className="hover:bg-gray-50/50 transition group">
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs shrink-0">
-                        {pair.tokenSymbol.slice(0, 2).toUpperCase()}
+                      <div className="w-8 h-8 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs shrink-0 overflow-hidden">
+                        {getTokenIconSrc(pair.wrapperSymbol) ? (
+                          <Image
+                            src={getTokenIconSrc(pair.wrapperSymbol)!}
+                            alt={pair.tokenSymbol}
+                            width={32}
+                            height={32}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          pair.tokenSymbol.slice(0, 2).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900">{pair.tokenSymbol}</div>

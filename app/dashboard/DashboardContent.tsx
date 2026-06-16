@@ -2,14 +2,50 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useRegistry } from "@/app/hooks/useRegistry";
 import { useTVS } from "@/app/hooks/useTVS";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import Link from "next/link";
-import { formatUSD, formatTokenUnits, truncateAddress as fmt } from "@/app/lib/format";
 import { truncateAddress } from "@/app/lib/constants";
 import type { Network } from "@/app/types";
+
+function getWrapperIconSrc(wrapperSymbol: string): string | null {
+  if (wrapperSymbol === "cUSDCMock" || wrapperSymbol === "cUSDTMock") {
+    return `/${wrapperSymbol}.svg`;
+  }
+  if (
+    wrapperSymbol === "cWETHMock" ||
+    wrapperSymbol === "cZAMAMock" ||
+    wrapperSymbol === "ctGBPMock"
+  ) {
+    return `/${wrapperSymbol}.png`;
+  }
+  if (wrapperSymbol === "cBRONMock") {
+    return `/${wrapperSymbol}.webp`;
+  }
+  return null;
+}
+
+function getTokenIconSrc(wrapperSymbol: string): string | null {
+  const tokenSymbol = wrapperSymbol.startsWith("c") ? wrapperSymbol.slice(1) : wrapperSymbol;
+
+  if (tokenSymbol === "USDCMock" || tokenSymbol === "USDTMock") {
+    return `/c${tokenSymbol}.svg`;
+  }
+  if (
+    tokenSymbol === "WETHMock" ||
+    tokenSymbol === "ZAMAMock" ||
+    tokenSymbol === "tGBPMock"
+  ) {
+    return `/c${tokenSymbol}.png`;
+  }
+  if (tokenSymbol === "BRONMock") {
+      return `/c${tokenSymbol}.webp`;
+  }
+  return null;
+}
 
 export default function DashboardContent() {
   const searchParams = useSearchParams();
@@ -40,7 +76,7 @@ export default function DashboardContent() {
                   "Shielded Assets"
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">Total Value Shielded</p>
+             
             </div>
             {/* Mini sparkline placeholder */}
             <div className="flex-1 h-14 flex items-end justify-end pb-1 pr-2 opacity-60">
@@ -75,8 +111,18 @@ export default function DashboardContent() {
                     href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&network=${network}`}
                     className="flex items-center gap-4 p-4 hover:bg-gray-50 transition group"
                   >
-                    <div className="w-9 h-9 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-sm shrink-0">
-                      {pair.tokenSymbol.slice(0, 2).toUpperCase()}
+                    <div className="w-6 h-6 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-sm shrink-0 overflow-hidden">
+                      {getWrapperIconSrc(pair.wrapperSymbol) ? (
+                        <Image
+                          src={getWrapperIconSrc(pair.wrapperSymbol)!}
+                          alt={pair.wrapperSymbol}
+                          width={24}
+                          height={24}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        pair.tokenSymbol.slice(0, 2).toUpperCase()
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -144,13 +190,15 @@ export default function DashboardContent() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <PromoCard
-                icon="🔒"
+                icon={
+                  <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><title>safe_shield_line</title><g id="safe_shield_line" fill='none' fillRule='evenodd'><path d='M24 0v24H0V0zM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018m.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022m-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01z'/><path fill='#09244BFF' d='M11.298 2.195a2 2 0 0 1 1.232-.055l.172.055 7 2.625a2 2 0 0 1 1.291 1.708l.007.165v5.363a9 9 0 0 1-4.709 7.911l-.266.139-3.354 1.677a1.5 1.5 0 0 1-1.198.062l-.144-.062-3.354-1.677a9 9 0 0 1-4.97-7.75l-.005-.3V6.693a2 2 0 0 1 1.145-1.808l.153-.065zM12 4.068 5 6.693v5.363a7 7 0 0 0 3.635 6.138l.235.123L12 19.882l3.13-1.565a7 7 0 0 0 3.865-5.997l.005-.264V6.693zm-.492 3.448a1.4 1.4 0 0 1 .846-.043l.138.043 2.8 1.05a1.4 1.4 0 0 1 .902 1.178l.006.133v2.145a4.2 4.2 0 0 1-2.131 3.655l-.19.102-1.342.67a1.2 1.2 0 0 1-.944.056l-.13-.055-1.341-.671a4.2 4.2 0 0 1-2.316-3.54l-.006-.217V9.877a1.4 1.4 0 0 1 .786-1.258l.122-.053zM12 9.468l-2.2.825v1.73a2.2 2.2 0 0 0 1.07 1.887l.146.08.984.492.984-.492a2.2 2.2 0 0 0 1.21-1.802l.006-.166v-1.729z'/></g></svg>
+                }
                 title="Shield assets now"
                 desc="Encrypt your ERC-20 tokens with a single transaction."
                 href={`/dashboard/vault?network=${network}`}
               />
               <PromoCard
-                icon="🚰"
+                icon={<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><title>drop_line</title><g id="drop_line" fill='none' fillRule='evenodd'><path d='M24 0v24H0V0zM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018m.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022m-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01z'/><path fill='#09244BFF' d='M12 4.307a26.826 26.826 0 0 0-3.124 3.245C7.305 9.507 6 11.817 6 14a6 6 0 0 0 12 0c0-2.183-1.305-4.493-2.876-6.448A26.824 26.824 0 0 0 12 4.307m-.751-1.986a1.18 1.18 0 0 1 1.502 0A28.635 28.635 0 0 1 16.682 6.3C18.322 8.339 20 11.106 20 14a8 8 0 0 1-16 0c0-2.894 1.678-5.661 3.318-7.701a28.636 28.636 0 0 1 3.93-3.978Z'/></g></svg>}
                 title="Get test tokens"
                 desc="Claim free cTokenMock assets on Sepolia instantly."
                 href={`/dashboard/faucet?network=${network}`}
@@ -188,7 +236,7 @@ function PromoCard({
   desc,
   href,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   desc: string;
   href: string;
@@ -196,9 +244,9 @@ function PromoCard({
   return (
     <Link
       href={href}
-      className="flex gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:shadow-sm transition group"
+      className="flex gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white  transition group"
     >
-      <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xl shrink-0 shadow-sm">
+      <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xl shrink-0 ">
         {icon}
       </div>
       <div>
@@ -245,8 +293,18 @@ function PairsTable({
             <tr key={pair.wrapperAddress} className="hover:bg-gray-50 transition">
               <td className="py-3 px-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-[11px]">
-                    {pair.tokenSymbol.slice(0, 2).toUpperCase()}
+                  <div className="w-7 h-7 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-[11px] overflow-hidden">
+                    {getTokenIconSrc(pair.wrapperSymbol) ? (
+                      <Image
+                        src={getTokenIconSrc(pair.wrapperSymbol)!}
+                        alt={pair.tokenSymbol}
+                        width={28}
+                        height={28}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      pair.tokenSymbol.slice(0, 2).toUpperCase()
+                    )}
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900 text-[13px]">{pair.tokenSymbol}</div>
@@ -302,7 +360,7 @@ function RightPanel({
       {/* Shield / Unshield tabs */}
       <div>
         <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl mb-4">
-          {["Shield", "Unshield", "Explore"].map((t, i) => (
+          {["Shield", "Unshield"].map((t, i) => (
             <Link
               key={t}
               href={`/dashboard/vault?tab=${t.toLowerCase()}&network=${network}`}
@@ -315,26 +373,7 @@ function RightPanel({
           ))}
         </div>
 
-        {/* Order type dropdown */}
-        <button className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 mb-4">
-          <span>One-time shield</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-            <path d="M6 9l6 6 6-6" strokeLinecap="round" />
-          </svg>
-        </button>
 
-        {/* Amount input */}
-        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-2">
-          <input
-            type="number"
-            placeholder="0"
-            className="flex-1 bg-transparent text-3xl font-light text-gray-300 outline-none w-16"
-          />
-          <span className="text-2xl font-light text-gray-300 ml-1">USDC</span>
-          <button className="ml-2 text-xs font-bold text-gray-400 border border-gray-200 px-2 py-1 rounded hover:bg-white transition">
-            Max
-          </button>
-        </div>
 
         {/* Pay with */}
         <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -384,10 +423,10 @@ function RightPanel({
 
       {/* Quick actions */}
       <div className="space-y-1 pt-2 border-t border-gray-100">
-        <QuickAction icon="↑" label="Shield assets" href={`/dashboard/vault?tab=shield&network=${network}`} color="bg-[#d0ede2] text-[#156640]" />
-        <QuickAction icon="↓" label="Unshield assets" href={`/dashboard/vault?tab=unshield&network=${network}`} color="bg-[#d0ede2] text-[#156640]" />
-        <QuickAction icon="🔍" label="View registry" href={`/dashboard/registry?network=${network}`} color="bg-blue-50 text-blue-600" />
-        <QuickAction icon="🚰" label="Claim test tokens" href={`/dashboard/faucet?network=${network}`} color="bg-purple-50 text-purple-600" />
+        <QuickAction icon={<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'><title>arrow_up_line</title><g id="arrow_up_line" fill='none' fillRule='nonzero'><path d='M24 0v24H0V0h24ZM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018Zm.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022Zm-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01-.184-.092Z'/><path fill='#09244BFF' d='M12.707 3.636a1 1 0 0 0-1.414 0L5.636 9.293a1 1 0 1 0 1.414 1.414L11 6.757V20a1 1 0 1 0 2 0V6.757l3.95 3.95a1 1 0 0 0 1.414-1.414l-5.657-5.657Z'/></g></svg>} label="Shield assets" href={`/dashboard/vault?tab=shield&network=${network}`} color="bg-blue-50 text-blue-600" />
+        <QuickAction icon={<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'><title>arrow_down_line</title><g id="arrow_down_line" fill='none' fillRule='nonzero'><path d='M24 0v24H0V0h24ZM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018Zm.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022Zm-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01-.184-.092Z'/><path fill='#09244BFF' d='m11 17.243-3.95-3.95a1 1 0 1 0-1.414 1.414l5.657 5.657a1 1 0 0 0 1.414 0l5.657-5.657a1 1 0 0 0-1.414-1.414L13 17.243V4a1 1 0 1 0-2 0v13.243Z'/></g></svg>} label="Unshield assets" href={`/dashboard/vault?tab=unshield&network=${network}`} color="bg-blue-50 text-blue-600" />
+        <QuickAction icon={<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'><title>search_line</title><g id="search_line" fill='none' fillRule='evenodd'><path d='M24 0v24H0V0zM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018m.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022m-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01z'/><path fill='#09244BFF' d='M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0'/></g></svg>} label="View registry" href={`/dashboard/registry?network=${network}`} color="bg-blue-50 text-blue-600" />
+
       </div>
     </div>
   );
@@ -399,7 +438,7 @@ function QuickAction({
   href,
   color,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   href: string;
   color: string;

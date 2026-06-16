@@ -11,12 +11,16 @@
  * @param amount - raw amount in smallest token units
  * @param decimals - number of decimal places for this token
  * @param displayDecimals - how many decimal places to show (default: all)
+ * @param options - optional settings
+ * @param options.useLocale - whether to use locale formatting (commas, etc.) — default true
  */
 export function formatTokenUnits(
   amount: bigint,
   decimals: number,
-  displayDecimals?: number
+  displayDecimals?: number,
+  options?: { useLocale?: boolean }
 ): string {
+  const { useLocale = true } = options || {};
   if (decimals === 0) return amount.toString();
 
   const divisor = 10n ** BigInt(decimals);
@@ -34,9 +38,11 @@ export function formatTokenUnits(
   const cleaned =
     displayDecimals !== undefined ? truncated : truncated.replace(/0+$/, "");
 
-  if (!cleaned) return intPart.toLocaleString();
+  const intPartStr = useLocale ? intPart.toLocaleString() : intPart.toString();
+  
+  if (!cleaned) return intPartStr;
 
-  return `${intPart.toLocaleString()}.${cleaned}`;
+  return `${intPartStr}.${cleaned}`;
 }
 
 /**
