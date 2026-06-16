@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/dashboard/:path*",
+        source: "/dashboard/vault/:path*",
         headers: [
           {
             key: "Cross-Origin-Opener-Policy",

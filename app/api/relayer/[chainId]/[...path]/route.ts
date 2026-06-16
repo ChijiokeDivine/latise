@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const RELAYER_URLS: Record<string, string> = {
-  "11155111": "https://relayer.testnet.zama.cloud",
-  "1": "https://relayer.mainnet.zama.cloud",
+  "11155111": "https://relayer.testnet.zama.org",
+  "1": "https://relayer.mainnet.zama.org",
 };
 async function proxyRelayerRequest(
   req: NextRequest,
