@@ -175,14 +175,14 @@ export default function RegistryContent() {
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                       <Link
-                        href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&tab=shield&network=${network}`}
+                        href={`/dashboard/shield?wrapper=${pair.wrapperAddress}&network=${network}`}
                         className="text-xs font-semibold text-[#156640] hover:underline whitespace-nowrap"
                       >
                         Shield
                       </Link>
                       <span className="text-gray-200">|</span>
                       <Link
-                        href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&tab=unshield&network=${network}`}
+                        href={`/dashboard/unshield?wrapper=${pair.wrapperAddress}&network=${network}`}
                         className="text-xs font-semibold text-gray-500 hover:text-gray-900 hover:underline whitespace-nowrap"
                       >
                         Unshield
@@ -264,13 +264,13 @@ export default function RegistryContent() {
               </div>
               <div className="flex gap-3">
                 <Link
-                  href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&tab=shield&network=${network}`}
+                  href={`/dashboard/shield?wrapper=${pair.wrapperAddress}&network=${network}`}
                   className="flex-1 py-2 bg-[#156640] text-white text-xs font-semibold rounded-lg text-center hover:bg-[#0f4f30]"
                 >
                   Shield
                 </Link>
                 <Link
-                  href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&tab=unshield&network=${network}`}
+                  href={`/dashboard/unshield?wrapper=${pair.wrapperAddress}&network=${network}`}
                   className="flex-1 py-2 border border-gray-200 text-gray-700 text-xs font-semibold rounded-lg text-center hover:bg-gray-50"
                 >
                   Unshield
