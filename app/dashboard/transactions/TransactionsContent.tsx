@@ -81,8 +81,8 @@ export default function TransactionsContent() {
   const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -93,7 +93,7 @@ export default function TransactionsContent() {
         <button
           onClick={() => { setLoadEnabled(true); refetch(); }}
           disabled={isLoading}
-          className="px-4 py-2 bg-[#156640] hover:bg-[#0f4f30] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+          className="px-4 py-2 bg-[#156640] hover:bg-[#0f4f30] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 self-start"
         >
           {isLoading ? "Loading…" : loadEnabled ? "↻ Refresh" : "Load Transactions"}
         </button>
@@ -131,7 +131,7 @@ export default function TransactionsContent() {
 
       {/* Not yet loaded */}
       {!loadEnabled && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-16 text-center">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-16 text-center">
           <div className="text-4xl mb-4">📋</div>
           <h2 className="text-base font-semibold text-gray-800 mb-2">Transaction history</h2>
           <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
@@ -146,9 +146,9 @@ export default function TransactionsContent() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Desktop Table */}
       {loadEnabled && (
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hidden md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
@@ -250,6 +250,97 @@ export default function TransactionsContent() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Mobile Cards */}
+      {loadEnabled && (
+        <div className="md:hidden space-y-4">
+          {isLoading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4">
+                  <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                </div>
+              ))
+            : pageRows.length === 0
+            ? (
+                <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-sm text-gray-400">
+                  No transactions found in the last 24 hours on {network}
+                </div>
+              )
+            : pageRows.map((row, i) => (
+                <div key={`${row.txHash}-${i}`} className="bg-white border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        row.type === "Shield"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-blue-50 text-blue-600"
+                      }`}>
+                        {row.type === "Shield" ? "🔒 Shield" : "🔓 Unshield"}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-[10px]">
+                          {row.token.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-gray-900 text-sm">
+                          {row.type === "Shield" ? row.token : row.wrapperSymbol}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-400">#{String(row.block)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <div className="text-xs text-gray-400">Amount</div>
+                      <div className="text-sm font-mono text-gray-700">
+                        {formatTokenUnits(row.rawAmount, row.decimals, 4)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400">To</div>
+                      <div className="text-sm font-mono text-gray-400">
+                        {truncateAddress(row.to)}
+                      </div>
+                    </div>
+                  </div>
+                  {row.txHash && row.txHash !== "0x" && (
+                    <a
+                      href={etherscanTx(row.txHash, network)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#156640] hover:underline font-mono inline-flex items-center gap-1"
+                    >
+                      {row.txHash.slice(0, 8)}…↗
+                    </a>
+                  )}
+                </div>
+              ))}
+        </div>
+      )}
+
+      {/* Mobile Pagination */}
+      {loadEnabled && !isLoading && pageCount > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl mt-4 md:hidden">
+          <span className="text-xs text-gray-400">
+            Page {page + 1} of {pageCount}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-40 transition"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={page >= pageCount - 1}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-40 transition"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>

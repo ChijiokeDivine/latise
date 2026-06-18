@@ -21,7 +21,7 @@ export default function FaucetContent() {
 
   if (isWrongNetwork) {
     return (
-      <div className="p-6 flex items-center justify-center h-full">
+      <div className="p-4 md:p-6 flex items-center justify-center h-full">
         <div className="text-center max-w-sm">
           <div className="text-4xl mb-4">🔒</div>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">Testnet only</h2>
@@ -34,7 +34,7 @@ export default function FaucetContent() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Developer Faucet</h1>
         <p className="text-sm text-gray-500 mt-0.5">
@@ -59,7 +59,7 @@ export default function FaucetContent() {
       <div className="mb-6 bg-gray-50 border border-gray-200 rounded-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#fff] text-white flex items-center justify-center text-base shrink-0">
-            <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'><title>drop_line</title><g id="drop_line" fill='none' fillRule='evenodd'><path d='M24 0v24H0V0zM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018m.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022m-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01z'/><path fill='#09244BFF' d='M12 4.307a26.826 26.826 0 0 0-3.124 3.245C7.305 9.507 6 11.817 6 14a6 6 0 0 0 12 0c0-2.183-1.305-4.493-2.876-6.448A26.824 26.824 0 0 0 12 4.307m-.751-1.986a1.18 1.18 0 0 1 1.502 0A28.635 28.635 0 0 1 16.682 6.3C18.322 8.339 20 11.106 20 14a8 8 0 0 1-16 0c0-2.894 1.678-5.661 3.318-7.701a28.636 28.636 0 0 1 3.93-3.978Z'/></g></svg>
+            <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'><title>drop_line</title><g id="drop_line" fill='none' fillRule='evenodd'><path d='M24 0v24H0V0zM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018m.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l-.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022m-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l-.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01z'/><path fill='#09244BFF' d='M12 4.307a26.826 26.826 0 0 0-3.124 3.245C7.305 9.507 6 11.817 6 14a6 6 0 0 0 12 0c0-2.183-1.305-4.493-2.876-6.448A26.824 26.824 0 0 0 12 4.307m-.751-1.986a1.18 1.18 0 0 1 1.502 0A28.635 28.635 0 0 1 16.682 6.3C18.322 8.339 20 11.106 20 14a8 8 0 0 1-16 0c0-2.894 1.678-5.661 3.318-7.701a28.636 28.636 0 0 1 3.93-3.978Z'/></g></svg>
           </div>
           <div>
             <div className="text-sm font-semibold text-[#0a3622]">How the faucet works</div>
@@ -76,13 +76,13 @@ export default function FaucetContent() {
       </div>
 
       {!authenticated ? (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {SEPOLIA_MOCK_TOKENS.map((token) => (
             <LockedCard key={token.symbol} token={token} onConnect={login} />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {SEPOLIA_MOCK_TOKENS.map((token) => (
             <FaucetCard
               key={token.symbol}

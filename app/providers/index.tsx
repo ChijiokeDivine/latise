@@ -4,43 +4,23 @@
 //   - PrivyProvider (wallet + social auth)
 //   - WagmiProvider (via Privy's built-in wagmi config)
 //   - QueryClientProvider (TanStack Query)
+//   - FHEBridgeProvider (hidden iframe for Zama SDK)
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { WagmiProvider } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  RelayerWeb,
-  ZamaProvider,
-  indexedDBStorage,
-} from "@zama-fhe/react-sdk";
-import { WagmiSigner } from "@zama-fhe/react-sdk/wagmi";
 import { sepolia, mainnet } from "viem/chains";
 import { http } from "wagmi";
 import { createConfig } from "@privy-io/wagmi";
 import { useState } from "react";
+import { FHEBridgeProvider } from "./FHEBridgeProvider";
 
 const wagmiConfig = createConfig({
   chains: [sepolia, mainnet],
   transports: {
     [sepolia.id]: http(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL),
     [mainnet.id]: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
-  },
-});
-
-const signer = new WagmiSigner({ config: wagmiConfig });
-
-const relayer = new RelayerWeb({
-  getChainId: () => signer.getChainId(),
-  transports: {
-    [sepolia.id]: {
-      relayerUrl: "https://relayer.testnet.zama.org",
-      network: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL!,
-    },
-    [mainnet.id]: {
-      relayerUrl: "https://relayer.mainnet.zama.org",
-      network: process.env.NEXT_PUBLIC_MAINNET_RPC_URL!,
-    },
   },
 });
 
@@ -80,9 +60,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={wagmiConfig}>
-          <ZamaProvider relayer={relayer} signer={signer} storage={indexedDBStorage}>
+          <FHEBridgeProvider>
             {children}
-          </ZamaProvider>
+          </FHEBridgeProvider>
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>

@@ -83,7 +83,12 @@ const BOTTOM_ITEMS = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { authenticated, ready, logout } = usePrivy();
 
@@ -94,127 +99,142 @@ export function Sidebar() {
 
   return (
     <>
-    <style>{`
-              :root {
-          --green-dark: #0d3b2e;
-        }
-        .nav-logo-icon {
-          width: 28px;
-          height: 28px;
-          position: relative;
-          flex-shrink: 0;
-        }
-        .nav-logo-icon::before,
-        .nav-logo-icon::after {
-          content: "";
-          position: absolute;
-          top: 1px; left: 1px;
-          width: 24px; height: 24px;
-        }
-        .nav-logo-icon::before {
-          background: linear-gradient(
-            to bottom,
-            transparent 4px,
-            var(--green-dark) 4px, var(--green-dark) 6.5px,
-            transparent 6.5px, transparent 14.5px,
-            var(--green-dark) 14.5px, var(--green-dark) 17.5px,
-            transparent 17.5px
-          );
-        }
-        .nav-logo-icon::after {
-          background: linear-gradient(
-            to right,
-            transparent 4px,
-            var(--green-dark) 4px, var(--green-dark) 6.5px,
-            transparent 6.5px, transparent 14.5px,
-            var(--green-dark) 14.5px, var(--green-dark) 17.5px,
-            transparent 17.5px
-          );
-        }
-    `}
-    </style>
-    <aside
-      className="flex flex-col bg-white border-r border-gray-200 shrink-0"
-      style={{ width: "var(--sidebar-width, 220px)" }}
-    >
-      {/* Logo */}
-      <Link href="/dashboard" className="flex items-center gap-2.5 px-5 h-[60px] border-b border-gray-100 no-underline">
-        <span className="nav-logo-icon" aria-hidden="true" />
-        <span className="font-semibold text-[20px] text-gray-900 ">Latise</span>
-      </Link>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Main nav */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto">
-        <ul className="space-y-0.5">
-          {NAV_ITEMS.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-colors",
-                  isActive(item.href)
-                    ? "bg-[#f0faf5] text-[#156640]"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
-              >
-                <span className={cn(isActive(item.href) ? "text-[#156640]" : "text-gray-400")}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+      <style>{`
+          :root {
+            --green-dark: #0d3b2e;
+          }
+          .nav-logo-icon {
+            width: 28px;
+            height: 28px;
+            position: relative;
+            flex-shrink: 0;
+          }
+          .nav-logo-icon::before,
+          .nav-logo-icon::after {
+            content: "";
+            position: absolute;
+            top: 1px; left: 1px;
+            width: 24px; height: 24px;
+          }
+          .nav-logo-icon::before {
+            background: linear-gradient(
+              to bottom,
+              transparent 4px,
+              var(--green-dark) 4px, var(--green-dark) 6.5px,
+              transparent 6.5px, transparent 14.5px,
+              var(--green-dark) 14.5px, var(--green-dark) 17.5px,
+              transparent 17.5px
+            );
+          }
+          .nav-logo-icon::after {
+            background: linear-gradient(
+              to right,
+              transparent 4px,
+              var(--green-dark) 4px, var(--green-dark) 6.5px,
+              transparent 6.5px, transparent 14.5px,
+              var(--green-dark) 14.5px, var(--green-dark) 17.5px,
+              transparent 17.5px
+            );
+          }
+      `}</style>
+      <aside
+        className={cn(
+          "flex flex-col bg-white border-r border-gray-200 shrink-0 transition-transform duration-300 fixed md:relative inset-y-0 left-0 z-50 md:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        style={{ width: "var(--sidebar-width, 220px)" }}
+      >
+        {/* Logo */}
+        <Link href="/dashboard" className="flex items-center gap-2.5 px-5 h-[60px] border-b border-gray-100 no-underline">
+          <span className="nav-logo-icon" aria-hidden="true" />
+          <span className="font-semibold text-[20px] text-gray-900 ">Latise</span>
+        </Link>
 
-        <div className="mt-6 pt-4 border-t border-gray-100">
+        {/* Main nav */}
+        <nav className="flex-1 px-3 py-3 overflow-y-auto">
           <ul className="space-y-0.5">
-            {BOTTOM_ITEMS.map((item) => (
-              <li key={item.label}>
+            {NAV_ITEMS.map((item) => (
+              <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-colors",
+                    isActive(item.href)
+                      ? "bg-[#f0faf5] text-[#156640]"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
                 >
-                  <span className="text-gray-400">{item.icon}</span>
+                  <span className={cn(isActive(item.href) ? "text-[#156640]" : "text-gray-400")}>
+                    {item.icon}
+                  </span>
                   {item.label}
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
-      </nav>
 
-      {/* Advanced toggle / Logout button */}
-      <div className="px-5 py-4 border-t border-gray-100">
-        {ready && authenticated ? (
-          <button
-            onClick={logout}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-[13px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <div className="flex items-center gap-2.5">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              Disconnect
-            </div>
-          </button>
-        ) : (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 text-[13px] text-gray-500">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
-                <path d="M12 20V10M18 20V4M6 20v-4" />
-              </svg>
-              Advanced
-            </div>
-            {/* Toggle */}
-            <button className="w-9 h-5 bg-gray-200 rounded-full relative transition-colors hover:bg-gray-300">
-              <span className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform" />
-            </button>
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <ul className="space-y-0.5">
+              {BOTTOM_ITEMS.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                  >
+                    <span className="text-gray-400">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-        )}
-      </div>
-    </aside>
+        </nav>
+
+        {/* Advanced toggle / Logout button */}
+        <div className="px-5 py-4 border-t border-gray-100">
+          {ready && authenticated ? (
+            <button
+              onClick={() => {
+                logout();
+                onClose?.();
+              }}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-[13px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Disconnect
+              </div>
+            </button>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5 text-[13px] text-gray-500">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                  <path d="M12 20V10M18 20V4M6 20v-4" />
+                </svg>
+                Advanced
+              </div>
+              {/* Toggle */}
+              <button className="w-9 h-5 bg-gray-200 rounded-full relative transition-colors hover:bg-gray-300">
+                <span className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform" />
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
     </>
   );
 }

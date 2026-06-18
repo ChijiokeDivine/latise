@@ -3,24 +3,34 @@
 // Coinbase-style shell: fixed left sidebar + sticky topbar + scrollable content.
 // All dashboard views (registry, vault, analytics, faucet) live inside this layout.
 
+"use client";
+
 import { Providers } from "@/app/providers";
-import { Sidebar } from "../components/sidebar/Sidebar";
-import { Topbar } from "../components/sidebar/Topbar";
+import { Sidebar } from "@/app/components/sidebar/Sidebar";
+import { Topbar } from "@/app/components/sidebar/Topbar";
+import { useState } from "react";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <Providers>
       <div className="flex h-screen bg-white overflow-hidden">
         {/* ── Fixed left sidebar ─────────────────────────────── */}
-        <Sidebar />
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
 
         {/* ── Right: topbar + scrollable content ─────────────── */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Topbar />
+          <Topbar
+            onMenuClick={() => setSidebarOpen(true)}
+          />
           <main className="flex-1 overflow-y-auto bg-[#f9fafb]">
             {children}
           </main>

@@ -12,9 +12,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
-import { useConfidentialBalance } from "@zama-fhe/react-sdk";
 import { fetchUnderlyingBalanceAndAllowance } from "../lib/wrapper";
 import { INTERVALS } from "../lib/constants";
+import { useFHEBridgeContext } from "../providers/FHEBridgeProvider";
 import type { Network, EnrichedPair, TokenBalances } from "@/app/types";
 
 /**
@@ -30,6 +30,7 @@ export function useTokenBalances(
   network: Network
 ) {
   const { address: userAddress } = useAccount();
+  const { getConfidentialBalance, isReady } = useFHEBridgeContext();
 
   // ── Underlying ERC-20 balance ─────────────────────────────────────────────
   const underlyingQuery = useQuery<
@@ -56,13 +57,25 @@ export function useTokenBalances(
     retry: 2,
   });
 
-  // ── Confidential cToken balance via Zama SDK ──────────────────────────────
-  // useConfidentialBalance handles EIP-712 signing, decryption, and caching.
-  // The first call in a session prompts a wallet signature — this is expected.
-  const { data: confidentialBalance, isLoading: isDecrypting, error: decryptError } =
-    useConfidentialBalance({
-      tokenAddress: (pair?.wrapperAddress as `0x${string}` | undefined)!,
-    });
+  // ── Confidential cToken balance via FHE Bridge ──────────────────────────────
+  const confidentialQuery = useQuery({
+    queryKey: [
+      "balances",
+      "confidential",
+      userAddress,
+      pair?.wrapperAddress,
+      network,
+    ],
+    queryFn: async () => {
+      if (!pair?.wrapperAddress) throw new Error("No wrapper address");
+      const result = await getConfidentialBalance(pair.wrapperAddress as `0x${string}`);
+      return result.data !== undefined ? BigInt(result.data) : undefined;
+    },
+    enabled: !!pair && !!userAddress && isReady,
+    staleTime: INTERVALS.BALANCE_REFRESH_MS,
+    refetchInterval: INTERVALS.BALANCE_REFRESH_MS,
+    retry: 2,
+  });
 
   // ── Combined return ───────────────────────────────────────────────────────
   const balances: TokenBalances | undefined =
@@ -70,10 +83,7 @@ export function useTokenBalances(
       ? {
           underlyingBalance: underlyingQuery.data.balance,
           underlyingDecimals: pair?.tokenDecimals ?? 18,
-          confidentialBalance:
-            confidentialBalance !== undefined
-              ? (confidentialBalance as bigint)
-              : undefined,
+          confidentialBalance: confidentialQuery.data,
           wrapperDecimals: pair?.wrapperDecimals ?? 6,
         }
       : undefined;
@@ -82,10 +92,13 @@ export function useTokenBalances(
     balances,
     allowance: underlyingQuery.data?.allowance,
     isLoadingUnderlying: underlyingQuery.isLoading,
-    isDecrypting,
-    isLoading: underlyingQuery.isLoading,
+    isDecrypting: confidentialQuery.isLoading,
+    isLoading: underlyingQuery.isLoading || confidentialQuery.isLoading,
     underlyingError: underlyingQuery.error,
-    decryptError,
-    refetch: underlyingQuery.refetch,
+    decryptError: confidentialQuery.error,
+    refetch: () => {
+      underlyingQuery.refetch();
+      confidentialQuery.refetch();
+    },
   };
 }

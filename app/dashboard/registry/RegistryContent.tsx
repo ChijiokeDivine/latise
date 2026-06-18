@@ -35,7 +35,7 @@ export default function RegistryContent() {
   const { data: pairs = [], isLoading, error } = useRegistry(network);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Registry Explorer</h1>
@@ -44,7 +44,7 @@ export default function RegistryContent() {
             <span className="font-medium capitalize">{network}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="hidden md:flex items-center gap-2 text-sm text-gray-500">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           {pairs.filter((p) => p.isValid).length} active pairs
         </div>
@@ -64,8 +64,8 @@ export default function RegistryContent() {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {/* Desktop Table */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hidden md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -194,6 +194,91 @@ export default function RegistryContent() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="h-4 bg-gray-100 rounded animate-pulse" />
+            </div>
+          ))
+        ) : error ? (
+          <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-500">
+            Failed to load registry. Check your RPC connection.
+          </div>
+        ) : pairs.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-400">
+            No pairs found on {network}.
+          </div>
+        ) : (
+          pairs.map((pair) => (
+            <div key={pair.wrapperAddress} className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs shrink-0 overflow-hidden">
+                    {getTokenIconSrc(pair.wrapperSymbol) ? (
+                      <Image
+                        src={getTokenIconSrc(pair.wrapperSymbol)!}
+                        alt={pair.tokenSymbol}
+                        width={32}
+                        height={32}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      pair.tokenSymbol.slice(0, 2).toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">{pair.tokenSymbol}</div>
+                    <div className="text-xs text-gray-400">{pair.wrapperSymbol}</div>
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold ${
+                    pair.isValid
+                      ? "bg-green-50 text-green-700"
+                      : "bg-red-50 text-red-600"
+                  }`}
+                >
+                  {pair.isValid ? "Active" : "Revoked"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs mb-4">
+                <div>
+                  <div className="text-gray-400">Rate</div>
+                  <div className="text-gray-700 font-mono">1 : {Number(pair.rate).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400">ERC-20</div>
+                  <a
+                    href={etherscanAddress(pair.tokenAddress, network)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#156640] font-mono hover:underline"
+                  >
+                    {truncateAddress(pair.tokenAddress)}↗
+                  </a>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Link
+                  href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&tab=shield&network=${network}`}
+                  className="flex-1 py-2 bg-[#156640] text-white text-xs font-semibold rounded-lg text-center hover:bg-[#0f4f30]"
+                >
+                  Shield
+                </Link>
+                <Link
+                  href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&tab=unshield&network=${network}`}
+                  className="flex-1 py-2 border border-gray-200 text-gray-700 text-xs font-semibold rounded-lg text-center hover:bg-gray-50"
+                >
+                  Unshield
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

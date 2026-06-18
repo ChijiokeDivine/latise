@@ -10,7 +10,11 @@ import { truncateAddress } from "@/app/lib/constants";
 import { NetworkSwitcher } from "./NetworkSwitcher";
 import { useState, useRef, useEffect } from "react";
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick?: () => void;
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   const { login, logout, ready, authenticated } = usePrivy();
   const { address } = useAccount();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -57,9 +61,19 @@ export function Topbar() {
 
   return (
     <header
-      className="flex items-center gap-4 px-6 bg-white border-b border-gray-200 shrink-0"
+      className="flex items-center gap-4 px-4 md:px-6 bg-white border-b border-gray-200 shrink-0"
       style={{ height: "var(--topbar-height, 60px)" }}
     >
+      {/* Mobile menu button */}
+      <button
+        className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600"
+        onClick={onMenuClick}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+          <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
       {/* Page title — injected by child pages via CSS / context */}
       <div className="flex-1" />
 
@@ -83,7 +97,7 @@ export function Topbar() {
       <NetworkSwitcher />
 
       {/* Icons */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 hidden md:flex">
        
         {/* Help */}
         <button
@@ -118,8 +132,8 @@ export function Topbar() {
               onMouseEnter={() => setDropdownOpen(true)}
               onMouseLeave={() => setDropdownOpen(false)}
             >
-              <button className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full border border-gray-200 hover:border-gray-300 text-sm font-medium text-gray-700 transition">
-                <span className="text-xs text-gray-500">{truncateAddress(address)}</span>
+              <button className="flex items-center gap-2 pl-2 md:pl-3 pr-1 py-1 rounded-full border border-gray-200 hover:border-gray-300 text-sm font-medium text-gray-700 transition">
+                <span className="text-xs text-gray-500 hidden md:inline">{truncateAddress(address)}</span>
                 <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold">
                   <img
                     src={`https://api.dicebear.com/10.x/identicon/svg?seed=${address}`}
@@ -153,7 +167,7 @@ export function Topbar() {
                           <rect x="9" y="9" width="13" height="13" rx="2" />
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
-                       {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
+                        {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
                       </>
                     )}
                   </button>
@@ -177,9 +191,9 @@ export function Topbar() {
           ) : (
             <button
               onClick={() => login()}
-              className="px-4 py-2 bg-[#156640] hover:bg-[#0f4f30] text-white text-sm font-semibold rounded-lg transition"
+              className="px-3 md:px-4 py-2 bg-[#156640] hover:bg-[#0f4f30] text-white text-sm font-semibold rounded-lg transition"
             >
-              Connect Wallet
+              Connect
             </button>
           )}
         </div>
@@ -199,7 +213,7 @@ export function Topbar() {
           >
             <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
               <div>
-              
+                
                 <h2 id="latise-overview-title" className="mt-1 text-2xl font-semibold text-gray-900">
                   What Latise does
                 </h2>

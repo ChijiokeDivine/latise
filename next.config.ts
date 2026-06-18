@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/dashboard/vault/:path*",
+        source: "/fhe-bridge",
         headers: [
           {
             key: "Cross-Origin-Opener-Policy",

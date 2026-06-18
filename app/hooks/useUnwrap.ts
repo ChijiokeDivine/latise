@@ -20,7 +20,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUnshield } from "@zama-fhe/react-sdk";
 import { parseEventLogs } from "viem";
 import { WRAPPER_ABI } from "../lib/abis/wrapper.abi";
 import { parseContractError, isUserRejection } from "../lib/errors";
@@ -29,6 +28,7 @@ import {
   pollForUnwrapFinalized,
 } from "../lib/events";
 import { pendingUnwrapKey, INTERVALS } from "../lib/constants";
+import { useFHEBridgeContext } from "../providers/FHEBridgeProvider";
 import type {
   Network,
   EnrichedPair,
@@ -69,6 +69,7 @@ export function useUnwrap({
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const queryClient = useQueryClient();
+  const { unshield, isReady } = useFHEBridgeContext();
 
   const [state, setState] = useState<UnwrapState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -78,12 +79,6 @@ export function useUnwrap({
   const [elapsedMs, setElapsedMs] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
-
-  // ── Zama SDK unshield hook ────────────────────────────────────────────────
-  // This handles FHE encryption of the amount and submission of the unwrap tx.
-  const { mutateAsync: unshield } = useUnshield({
-    tokenAddress: pair.wrapperAddress,
-  });
 
   // ── localStorage key for this pair + user ─────────────────────────────────
   const chainId = network === "sepolia" ? 11155111 : 1;
@@ -193,20 +188,24 @@ export function useUnwrap({
         return;
       }
 
+      if (!isReady) {
+        setErrorMessage("FHE Bridge not ready yet. Please try again in a moment.");
+        setState("error");
+        return;
+      }
+
       if (state !== "idle") return; // Prevent double-submit
 
       setErrorMessage(null);
 
       try {
-        // ── Step 1: SDK encrypts and submits unwrap tx ──────────────────
+        // ── Step 1: SDK encrypts and submits unwrap tx (via bridge) ─────────
         setState("decrypting");
 
         let unwrapTxHashFromCallback: `0x${string}` | undefined;
 
-        // The SDK's unshield() handles:
-        //   1. Client-side FHE encryption of the amount
-        //   2. Calling wrapper.unwrap(from, to, encryptedAmount, inputProof)
         await unshield({
+          tokenAddress: pair.wrapperAddress as `0x${string}`,
           amount: wrapperAmount,
           onUnwrapSubmitted: (txHash) => {
             unwrapTxHashFromCallback = txHash as `0x${string}`;
@@ -297,6 +296,7 @@ export function useUnwrap({
     [
       walletClient,
       publicClient,
+      isReady,
       state,
       unshield,
       pair,
