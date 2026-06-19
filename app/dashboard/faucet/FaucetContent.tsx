@@ -211,7 +211,7 @@ function FaucetCard({
           else faucet.execute(token);
         }}
         disabled={isMinting || disabled}
-        className={`w-full py-2.5 rounded-xl text-sm font-semibold transition ${
+        className={`w-full py-2.5 rounded-3xl text-sm font-semibold cursor-pointer transition ${
           isDone
             ? "bg-[#171717]/90 text-white border border-[#171717]"
             : isMinting

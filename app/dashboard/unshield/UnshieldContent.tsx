@@ -1,7 +1,8 @@
 // app/dashboard/unshield/UnshieldContent.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
@@ -12,6 +13,31 @@ import { parseTokenInput, formatTokenUnits } from "@/app/lib/format";
 import { computeExpectedWrapAmount } from "@/app/lib/wrapper";
 import { etherscanTx, CHAIN_IDS } from "@/app/lib/constants";
 import type { EnrichedPair, Network } from "@/app/types";
+
+function getTokenIconSrc(wrapperSymbol: string): string | null {
+  if (wrapperSymbol.includes("USDC")) {
+    return "/cUSDCMock.svg";
+  }
+  if (wrapperSymbol.includes("USDT")) {
+    return "/cUSDTMock.svg";
+  }
+  if (wrapperSymbol.includes("WETH")) {
+    return "/cWETHMock.png";
+  }
+  if (wrapperSymbol.includes("ZAMA")) {
+    return "/cZAMAMock.png";
+  }
+  if (wrapperSymbol.includes("tGBP")) {
+    return "/ctGBPMock.png";
+  }
+  if (wrapperSymbol.includes("XAUt")) {
+    return "/cXAUtMock.png";
+  }
+  if (wrapperSymbol.includes("BRON")) {
+    return "/cBRONMock.webp";
+  }
+  return null;
+}
 
 export default function UnshieldContent() {
   const searchParams = useSearchParams();
@@ -94,6 +120,20 @@ function InnerUnshieldContent({
   const safeUserAddress =
     (address ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const correctChainId = CHAIN_IDS[network];
   const isWrongChain = authenticated && chainId !== correctChainId;
 
@@ -165,27 +205,6 @@ function InnerUnshieldContent({
         <div className="flex-2 max-w-full md:max-w-lg">
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             <div className="p-5 space-y-4">
-              {/* Token selector */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
-                  Select Token
-                </label>
-                <select
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#156640]/20 focus:border-[#156640]"
-                  value={selectedWrapper ?? ""}
-                  onChange={(e) => {
-                    setSelectedWrapper(e.target.value as `0x${string}`);
-                    setInputValue("");
-                  }}
-                >
-                  {pairs.filter((p) => p.isValid).map((p) => (
-                    <option key={p.wrapperAddress} value={p.wrapperAddress}>
-                      {p.tokenSymbol} → {p.wrapperSymbol}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* You unshield section */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
@@ -195,25 +214,87 @@ function InnerUnshieldContent({
                   {authenticated && (
                     <button
                       onClick={handleMax}
-                      className="text-xs text-[#156640] font-semibold hover:underline"
+                      className="text-xs text-[#171717]/60 font-semibold hover:underline"
                     >
                       Max: {formatTokenUnits(maxBalance, maxDecimals, 4)}
                     </button>
                   )}
                 </div>
-                <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    disabled={isBusy}
-                    className="flex-1 bg-transparent text-xl font-light text-gray-900 outline-none disabled:opacity-50"
-                  />
-                  <span className="text-sm font-semibold text-gray-500 shrink-0">
-                    {pair.wrapperSymbol}
-                  </span>
+                <div ref={dropdownRef} className="relative">
+                  <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 cursor-pointer hover:border-gray-300" onClick={() => setDropdownOpen(!dropdownOpen)}>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      disabled={isBusy}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 bg-transparent text-xl font-light text-gray-900 outline-none disabled:opacity-50"
+                    />
+                    <div className="flex items-center gap-2 ml-2">
+                      <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden">
+                        {getTokenIconSrc(pair.wrapperSymbol) ? (
+                          <Image
+                            src={getTokenIconSrc(pair.wrapperSymbol)!}
+                            alt={pair.wrapperSymbol}
+                            width={16}
+                            height={16}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          pair.wrapperSymbol.slice(1, 3).toUpperCase()
+                        )}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-500">
+                        {pair.wrapperSymbol}
+                      </span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`w-4 h-4 text-gray-400 hidden md:block transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
+                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Dropdown menu */}
+                  {dropdownOpen && (
+                    <div className="absolute top-full right-0 mt-1 w-fit min-w-[200px] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+                      {pairs.filter((p) => p.isValid).map((p) => (
+                        <button
+                          key={p.wrapperAddress}
+                          onClick={() => {
+                            setSelectedWrapper(p.wrapperAddress);
+                            setInputValue("");
+                            setDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition ${selectedWrapper === p.wrapperAddress ? "bg-[#f0faf5]" : ""}`}
+                        >
+                          <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden">
+                            {getTokenIconSrc(p.wrapperSymbol) ? (
+                              <Image
+                                src={getTokenIconSrc(p.wrapperSymbol)!}
+                                alt={p.wrapperSymbol}
+                                width={16}
+                                height={16}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              p.wrapperSymbol.slice(1, 3).toUpperCase()
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-gray-900">
+                            {p.wrapperSymbol}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Insufficient balance error */}
+                {authenticated && parsedAmount > maxBalance && (
+                  <div className="mt-1 text-xs text-red-600">
+                    Insufficient balance
+                  </div>
+                )}
               </div>
 
               {/* You receive section */}
@@ -223,13 +304,34 @@ function InnerUnshieldContent({
                     You receive
                   </label>
                 </div>
-                <div className="flex items-center justify-between bg-[#f0faf5] border border-gray-200 rounded-lg px-4 py-3">
+                <div className="flex items-center justify-between  border border-gray-200 rounded-lg px-4 py-3">
                   <span className="text-xl font-light text-gray-700">
                     {expectedReceiveAmount !== null ? formatTokenUnits(expectedReceiveAmount, pair.tokenDecimals, 4) : "0.00"}
                   </span>
-                  <span className="text-sm font-semibold text-[#156640] ml-2">
-                    {pair.tokenSymbol}
-                  </span>
+                  <div className="flex items-center gap-2 ml-2 relative">
+                    <div className="w-4 h-4 rounded-full bg-[#d0ede2] flex items-center justify-center shrink-0 overflow-hidden">
+                      {getTokenIconSrc(pair.wrapperSymbol) ? (
+                        <Image
+                          src={getTokenIconSrc(pair.wrapperSymbol)!}
+                          alt={pair.tokenSymbol}
+                          width={16}
+                          height={16}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        pair.tokenSymbol.slice(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold text-[#171717]/60">
+                      {pair.tokenSymbol}
+                    </span>
+                    {/* Checkmark */}
+                    {/* <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#156640] rounded-full flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} className="w-3 h-3">
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div> */}
+                  </div>
                 </div>
               </div>
 
@@ -308,7 +410,7 @@ function InnerUnshieldContent({
               <button
                 onClick={handleAction}
                 disabled={isBusy && unwrap.state !== "error"}
-                className={`w-full py-3.5 rounded-lg font-semibold text-sm transition ${
+                className={`w-full py-3.5 rounded-lg font-semibold text-sm cursor-pointer transition ${
                   isBusy && unwrap.state !== "error"
                     ? "bg-[#171717]/50 text-white cursor-wait"
                     : "bg-[#171717]/80 hover:bg-[#171717] text-white"
