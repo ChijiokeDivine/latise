@@ -225,7 +225,7 @@ function InnerShieldContent({
                   </label>
                 </div>
                 <div className="flex items-center justify-between bg-[#f0faf5] border border-gray-200 rounded-lg px-4 py-3">
-                  <span className="text-2xl font-light text-gray-700">
+                  <span className="text-xl font-light text-gray-700">
                     {expectedOut !== null ? formatTokenUnits(expectedOut, pair.wrapperDecimals, 4) : "0.00"}
                   </span>
                   <span className="text-sm font-semibold text-[#156640] ml-2">
@@ -297,8 +297,8 @@ function InnerShieldContent({
                 disabled={isBusy && wrap.state !== "error"}
                 className={`w-full py-3.5 rounded-lg font-semibold text-sm transition ${
                   isBusy && wrap.state !== "error"
-                    ? "bg-[#156640]/50 text-white cursor-wait"
-                    : "bg-[#156640] hover:bg-[#0f4f30] text-white"
+                    ? "bg-[#171717]/50 text-white cursor-wait"
+                    : "bg-[#171717]/80 hover:bg-[#171717] text-white"
                 }`}
               >
                 {getButtonLabel()}

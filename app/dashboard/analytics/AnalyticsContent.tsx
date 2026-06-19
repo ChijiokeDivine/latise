@@ -9,6 +9,7 @@
 
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useShieldedSupply } from "@/app/hooks/useTVS";
@@ -21,6 +22,41 @@ import {
   AreaChart, Area, CartesianGrid,
 } from "recharts";
 import type { Network } from "@/app/types";
+
+function getTokenIconSrc(wrapperSymbol: string): string | null {
+  // Handle both "c..." and "c...Mock" versions
+  let baseSymbol = wrapperSymbol;
+  
+  // Normalize: if it's a mock symbol, use the base, otherwise add Mock if needed
+  // Check for SVG tokens first (USDC, USDT)
+  if (baseSymbol.includes("USDC")) {
+    return "/cUSDCMock.svg";
+  }
+  if (baseSymbol.includes("USDT")) {
+    return "/cUSDTMock.svg";
+  }
+  
+  // Check for PNG tokens (WETH, ZAMA, tGBP, XAUt)
+  if (baseSymbol.includes("WETH")) {
+    return "/cWETHMock.png";
+  }
+  if (baseSymbol.includes("ZAMA")) {
+    return "/cZAMAMock.png";
+  }
+  if (baseSymbol.includes("tGBP")) {
+    return "/ctGBPMock.png";
+  }
+  if (baseSymbol.includes("XAUt")) {
+    return "/cXAUtMock.png";
+  }
+  
+  // Check for WebP token (BRON)
+  if (baseSymbol.includes("BRON")) {
+    return "/cBRONMock.webp";
+  }
+  
+  return null;
+}
 
 export default function AnalyticsContent() {
   const searchParams = useSearchParams();
@@ -250,8 +286,18 @@ export default function AnalyticsContent() {
                           <td className="py-3 px-4 text-xs text-gray-400 font-semibold">{i + 1}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs">
-                                {t.symbol.slice(1, 3).toUpperCase()}
+                              <div className="w-7 h-7 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs shrink-0 overflow-hidden">
+                                {getTokenIconSrc(t.symbol) ? (
+                                  <Image
+                                    src={getTokenIconSrc(t.symbol)!}
+                                    alt={t.symbol}
+                                    width={28}
+                                    height={28}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  t.symbol.slice(1, 3).toUpperCase()
+                                )}
                               </div>
                               <span className="font-semibold text-gray-900 text-[13px]">{t.symbol}</span>
                             </div>
@@ -303,8 +349,18 @@ export default function AnalyticsContent() {
                     <div key={t.wrapperAddress} className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs">
-                            {t.symbol.slice(1, 3).toUpperCase()}
+                          <div className="w-7 h-7 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs shrink-0 overflow-hidden">
+                            {getTokenIconSrc(t.symbol) ? (
+                              <Image
+                                src={getTokenIconSrc(t.symbol)!}
+                                alt={t.symbol}
+                                width={28}
+                                height={28}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              t.symbol.slice(1, 3).toUpperCase()
+                            )}
                           </div>
                           <div>
                             <div className="font-semibold text-gray-900">{t.symbol}</div>

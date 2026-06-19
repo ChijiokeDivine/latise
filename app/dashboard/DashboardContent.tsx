@@ -12,37 +12,53 @@ import { truncateAddress } from "@/app/lib/constants";
 import type { Network } from "@/app/types";
 
 function getWrapperIconSrc(wrapperSymbol: string): string | null {
-  if (wrapperSymbol === "cUSDCMock" || wrapperSymbol === "cUSDTMock") {
-    return `/${wrapperSymbol}.svg`;
+  // Handle both "c..." and "c...Mock" versions
+  if (wrapperSymbol.includes("USDC")) {
+    return "/cUSDCMock.svg";
   }
-  if (
-    wrapperSymbol === "cWETHMock" ||
-    wrapperSymbol === "cZAMAMock" ||
-    wrapperSymbol === "ctGBPMock"
-  ) {
-    return `/${wrapperSymbol}.png`;
+  if (wrapperSymbol.includes("USDT")) {
+    return "/cUSDTMock.svg";
   }
-  if (wrapperSymbol === "cBRONMock") {
-    return `/${wrapperSymbol}.webp`;
+  if (wrapperSymbol.includes("WETH")) {
+    return "/cWETHMock.png";
+  }
+  if (wrapperSymbol.includes("ZAMA")) {
+    return "/cZAMAMock.png";
+  }
+  if (wrapperSymbol.includes("tGBP")) {
+    return "/ctGBPMock.png";
+  }
+  if (wrapperSymbol.includes("XAUt")) {
+    return "/cXAUtMock.png";
+  }
+  if (wrapperSymbol.includes("BRON")) {
+    return "/cBRONMock.webp";
   }
   return null;
 }
 
 function getTokenIconSrc(wrapperSymbol: string): string | null {
-  const tokenSymbol = wrapperSymbol.startsWith("c") ? wrapperSymbol.slice(1) : wrapperSymbol;
-
-  if (tokenSymbol === "USDCMock" || tokenSymbol === "USDTMock") {
-    return `/c${tokenSymbol}.svg`;
+  // Handle both "c..." and "c...Mock" versions
+  if (wrapperSymbol.includes("USDC")) {
+    return "/cUSDCMock.svg";
   }
-  if (
-    tokenSymbol === "WETHMock" ||
-    tokenSymbol === "ZAMAMock" ||
-    tokenSymbol === "tGBPMock"
-  ) {
-    return `/c${tokenSymbol}.png`;
+  if (wrapperSymbol.includes("USDT")) {
+    return "/cUSDTMock.svg";
   }
-  if (tokenSymbol === "BRONMock") {
-      return `/c${tokenSymbol}.webp`;
+  if (wrapperSymbol.includes("WETH")) {
+    return "/cWETHMock.png";
+  }
+  if (wrapperSymbol.includes("ZAMA")) {
+    return "/cZAMAMock.png";
+  }
+  if (wrapperSymbol.includes("tGBP")) {
+    return "/ctGBPMock.png";
+  }
+  if (wrapperSymbol.includes("XAUt")) {
+    return "/cXAUtMock.png";
+  }
+  if (wrapperSymbol.includes("BRON")) {
+    return "/cBRONMock.webp";
   }
   return null;
 }

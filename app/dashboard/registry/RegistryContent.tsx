@@ -10,21 +10,27 @@ import { formatTokenUnits } from "@/app/lib/format";
 import type { Network } from "@/app/types";
 
 function getTokenIconSrc(wrapperSymbol: string): string | null {
-  const tokenSymbol = wrapperSymbol.startsWith("c") ? wrapperSymbol.slice(1) : wrapperSymbol;
-
-  if (tokenSymbol === "USDCMock" || tokenSymbol === "USDTMock") {
-    return `/c${tokenSymbol}.svg`;
+  // Handle both "c..." and "c...Mock" versions
+  if (wrapperSymbol.includes("USDC")) {
+    return "/cUSDCMock.svg";
   }
-  if (
-    tokenSymbol === "WETHMock" ||
-    tokenSymbol === "ZAMAMock" ||
-    tokenSymbol === "tGBPMock" ||
-    tokenSymbol === "XAUtMock"
-  ) {
-    return `/c${tokenSymbol}.png`;
+  if (wrapperSymbol.includes("USDT")) {
+    return "/cUSDTMock.svg";
   }
-  if (tokenSymbol === "BRONMock") {
-    return `/c${tokenSymbol}.webp`;
+  if (wrapperSymbol.includes("WETH")) {
+    return "/cWETHMock.png";
+  }
+  if (wrapperSymbol.includes("ZAMA")) {
+    return "/cZAMAMock.png";
+  }
+  if (wrapperSymbol.includes("tGBP")) {
+    return "/ctGBPMock.png";
+  }
+  if (wrapperSymbol.includes("XAUt")) {
+    return "/cXAUtMock.png";
+  }
+  if (wrapperSymbol.includes("BRON")) {
+    return "/cBRONMock.webp";
   }
   return null;
 }
@@ -53,13 +59,16 @@ export default function RegistryContent() {
       {/* Stats strip */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Total Pairs", value: pairs.length },
-          { label: "Active Pairs", value: pairs.filter((p) => p.isValid).length },
-          { label: "Revoked Pairs", value: pairs.filter((p) => !p.isValid).length },
+          { label: "Total Pairs", mobileLabel: "Total", value: pairs.length },
+          { label: "Active Pairs", mobileLabel: "Active", value: pairs.filter((p) => p.isValid).length },
+          { label: "Revoked Pairs", mobileLabel: "Revoked", value: pairs.filter((p) => !p.isValid).length },
         ].map((s) => (
           <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
             <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              <span className="md:hidden">{s.mobileLabel}</span>
+              <span className="hidden md:inline">{s.label}</span>
+            </div>
           </div>
         ))}
       </div>
