@@ -53,10 +53,24 @@ export function useConfidentialTransfer({
 
   const execute = useCallback(
     async ({ to, amount }: { to: `0x${string}`; amount: bigint }) => {
-      if (!isReady) {
-        setErrorMessage("FHE Bridge not ready yet. Please try again in a moment.");
-        setState("error");
-        return;
+      // Wait for bridge to be ready, with timeout
+      let ready = isReady;
+      if (!ready) {
+        // Poll for up to 5 seconds
+        const maxWait = 5000;
+        const pollInterval = 100;
+        let waited = 0;
+        while (!ready && waited < maxWait) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          waited += pollInterval;
+          // Re-check isReady each time
+          ready = isReady;
+        }
+        if (!ready) {
+          setErrorMessage("FHE Bridge not ready yet. Please try again in a moment.");
+          setState("error");
+          return;
+        }
       }
 
       if (state !== "idle") return;

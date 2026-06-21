@@ -340,9 +340,9 @@ function InnerUnshieldContent({
                 <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-100">
                   <div>
                     <div className="text-xs text-gray-400 font-medium">Encrypted Balance</div>
-                    <div className="text-sm font-semibold text-gray-900 mt-0.5">
+                    <div className="text-xs md:text-sm  font-semibold text-gray-900 mt-0.5">
                       {confidentialBalance !== undefined
-                        ? `${formatTokenUnits(confidentialBalance, pair.wrapperDecimals, 4)} ${pair.wrapperSymbol}`
+                        ? `${formatTokenUnits(confidentialBalance, pair.wrapperDecimals, 0)} ${pair.wrapperSymbol}`
                         : "••••••"}
                     </div>
                   </div>

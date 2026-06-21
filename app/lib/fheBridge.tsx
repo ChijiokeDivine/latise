@@ -57,6 +57,31 @@ export function useFHEBridge() {
     setIsReady(true);
   }, []);
 
+  // Check if iframe is already loaded after mount (in case load event fired before ref/handler were attached)
+  // Also add a polling mechanism as a fallback
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    const checkReady = () => {
+      if (iframeRef.current) {
+        if (iframeRef.current.contentDocument?.readyState === "complete") {
+          setIsReady(true);
+          if (interval) clearInterval(interval);
+        }
+      }
+    };
+
+    // Check immediately
+    checkReady();
+    
+    // Poll for up to 5 seconds just in case
+    interval = setInterval(checkReady, 100);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
   // Base message transmitter 
   const sendRequest = useCallback((type: string, params: any): Promise<any> => {
     return new Promise((resolve, reject) => {
