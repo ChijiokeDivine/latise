@@ -46,9 +46,7 @@ Confidential wrapper tokens solve these issues by encrypting your regular ERC-20
 - Keep your balances and transfer amounts encrypted
 - Still leverage all the security and infrastructure of EVM networks
 
-<div align="center">
-  <img src="/coins_fl.png" alt="Confidential Tokens" width="350" style="border-radius: 8px;" />
-</div>
+
 
 ---
 
@@ -363,7 +361,3 @@ Want to dive deeper? Check out these resources:
 
 ---
 
-<div align="center">
-  <p>Built with ❤️ for on-chain privacy</p>
-  <p>© 2026 Latise</p>
-</div>
