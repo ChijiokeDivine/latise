@@ -443,7 +443,15 @@ function RightPanel({
         {/* Pay with */}
         <div className="flex items-center justify-between py-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-xs">UC</div>
+            <div className="w-6 h-6 rounded-full overflow-hidden">
+              <Image 
+                src="/cBRONMock.webp" 
+                alt="ETH" 
+                width={32} 
+                height={32} 
+                className="w-full h-full object-cover"
+              />
+            </div>
             <div>
               <div className="text-sm font-semibold text-gray-900">Pay with</div>
               <div className="text-xs text-gray-400">ERC-20 token</div>
@@ -457,7 +465,15 @@ function RightPanel({
         {/* Receive */}
         <div className="flex items-center justify-between py-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#156640] flex items-center justify-center text-white font-bold text-xs">cU</div>
+            <div className="w-8 h-8 rounded-full overflow-hidden">
+              <Image 
+                src="/secure.jpeg" 
+                alt="Confidential Token" 
+                width={32} 
+                height={32} 
+                className="w-full h-full object-cover"
+              />
+            </div>
             <div>
               <div className="text-sm font-semibold text-gray-900">Receive</div>
               <div className="text-xs text-gray-400">Confidential token</div>
