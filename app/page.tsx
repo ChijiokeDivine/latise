@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Script from "next/script";
 
@@ -341,6 +341,10 @@ export default function Home() {
           display: inline-block;
           animation: wave 0.8s ease forwards;
           font-family: var(--font-dm-sans), sans-serif;
+        }
+        .wave-word {
+          display: inline-block;
+          white-space: nowrap;
         }
         .wave-space { display: inline-block; width: 0.28em; }
 
@@ -1104,15 +1108,39 @@ export default function Home() {
 function WavyText({ text, startIndex = 0 }: { text: string; startIndex?: number }) {
   const BASE_DELAY   = 20;
   const CHAR_STAGGER = 20;
+  const words = text.split(" ");
+  let charOffset = 0;
+
   return (
     <>
-      {text.split("").map((char, i) => {
-        const delay = BASE_DELAY + (startIndex + i) * CHAR_STAGGER;
-        if (char === " ") return <span key={i} className="wave-space" aria-hidden="true" />;
+      {words.map((word, wordIndex) => {
+        const wordStart = charOffset;
+        charOffset += word.length;
+
         return (
-          <span key={i} className="wave-char" aria-hidden="true" style={{ animationDelay: `${delay}ms` }}>
-            {char}
-          </span>
+          <Fragment key={`${word}-${wordIndex}`}>
+            <span className="wave-word" aria-hidden="true">
+              {word.split("").map((char, charIndex) => {
+                const delay = BASE_DELAY + (startIndex + wordStart + charIndex) * CHAR_STAGGER;
+                return (
+                  <span
+                    key={`${wordIndex}-${charIndex}`}
+                    className="wave-char"
+                    aria-hidden="true"
+                    style={{ animationDelay: `${delay}ms` }}
+                  >
+                    {char}
+                  </span>
+                );
+              })}
+            </span>
+            {wordIndex < words.length - 1 ? (
+              <span
+                className="wave-space"
+                aria-hidden="true"
+              />
+            ) : null}
+          </Fragment>
         );
       })}
     </>
