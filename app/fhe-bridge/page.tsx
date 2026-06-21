@@ -8,6 +8,7 @@ import {
   indexedDBStorage,
   useConfidentialBalance,
   useUnshield,
+  useConfidentialTransfer,
 } from "@zama-fhe/react-sdk";
 import { WagmiSigner } from "@zama-fhe/react-sdk/wagmi";
 import { sepolia, mainnet } from "viem/chains";
@@ -106,7 +107,7 @@ function FHEBridge() {
   const [activeRequests, setActiveRequests] = useState<
     Array<{
       id: string;
-      type: "getConfidentialBalance" | "unshield";
+      type: "getConfidentialBalance" | "unshield" | "confidentialTransfer";
       params: any;
     }>
   >([]);
@@ -214,6 +215,66 @@ function FHEBridge() {
     return null;
   };
 
+  const ConfidentialTransferExecutor = ({
+    requestId,
+    tokenAddress,
+    to,
+    amount,
+  }: {
+    requestId: string;
+    tokenAddress: `0x${string}`;
+    to: `0x${string}`;
+    amount: bigint;
+  }) => {
+    const { mutateAsync: confidentialTransfer } = useConfidentialTransfer({
+      tokenAddress,
+    });
+
+    useEffect(() => {
+      const execute = async () => {
+        try {
+          let txHash: `0x${string}` | undefined;
+          const result = await confidentialTransfer({
+            to,
+            amount,
+            onTransferSubmitted: (hash) => {
+              txHash = hash as `0x${string}`;
+              sendMessage({
+                type: "confidential_transfer_submitted",
+                requestId,
+                txHash,
+              });
+            },
+          });
+          sendMessage({
+            type: "confidential_transfer_success",
+            requestId,
+            result,
+          });
+        } catch (error) {
+          sendMessage({
+            type: "confidential_transfer_error",
+            requestId,
+            error:
+              error instanceof Error
+                ? { message: error.message, name: error.name }
+                : String(error),
+          });
+        } finally {
+          // Remove request from active list after completion
+          setTimeout(() => {
+            setActiveRequests((prev) =>
+              prev.filter((r) => r.id !== requestId)
+            );
+          }, 1000);
+        }
+      };
+      execute();
+    }, [confidentialTransfer, requestId, to, amount]);
+
+    return null;
+  };
+
   return (
     <>
       {activeRequests.map((req) => {
@@ -233,6 +294,17 @@ function FHEBridge() {
               key={req.id}
               requestId={req.id}
               tokenAddress={req.params.tokenAddress}
+            />
+          );
+        }
+        if (req.type === "confidentialTransfer") {
+          return (
+            <ConfidentialTransferExecutor
+              key={req.id}
+              requestId={req.id}
+              tokenAddress={req.params.tokenAddress}
+              to={req.params.to}
+              amount={BigInt(req.params.amount)}
             />
           );
         }

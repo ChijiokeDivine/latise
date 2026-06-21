@@ -116,7 +116,7 @@ function InnerShieldContent({
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const { balances, allowance, refetch: refetchBalances } = useTokenBalances(pair, network);
+  const { balances, allowance, refetch: refetchBalances, isDecrypting } = useTokenBalances(pair, network);
   const safeUserAddress =
     (address ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
@@ -204,7 +204,7 @@ function InnerShieldContent({
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left: shield card */}
         <div className="flex-2 max-w-full md:max-w-lg">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-xl  shadow-sm">
             <div className="p-5 space-y-4">
               {/* You shield section */}
               <div>
@@ -348,7 +348,9 @@ function InnerShieldContent({
                     </div>
                   </div>
                   <button
-                    className="flex items-center gap-1.5 text-xs font-semibold text-[#156640] hover:text-[#0f4f30] transition"
+                    onClick={() => refetchBalances()}
+                    disabled={isDecrypting}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#156640] hover:text-[#0f4f30] transition disabled:opacity-50"
                     title="Click to decrypt your balance (requires wallet signature)"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
@@ -364,7 +366,7 @@ function InnerShieldContent({
                         </>
                       )}
                     </svg>
-                    {balances?.confidentialBalance !== undefined ? "Visible" : "Decrypt"}
+                    {isDecrypting ? "Decrypting..." : balances?.confidentialBalance !== undefined ? "Visible" : "Decrypt"}
                   </button>
                 </div>
               )}

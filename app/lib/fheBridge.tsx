@@ -38,10 +38,10 @@ export function useFHEBridge() {
     const pending = pendingRequests.current.get(requestId);
     if (!pending) return;
 
-    if (type === "unshield_success" || type === "confidential_balance_response") {
+    if (type === "unshield_success" || type === "confidential_balance_response" || type === "confidential_transfer_success") {
       pending.resolve(data);
       pendingRequests.current.delete(requestId);
-    } else if (type === "unshield_error") {
+    } else if (type === "unshield_error" || type === "confidential_transfer_error") {
       pending.reject(data.error || "An unknown error occurred inside FHE bridge.");
       pendingRequests.current.delete(requestId);
     }
@@ -123,6 +123,49 @@ export function useFHEBridge() {
     [generateRequestId]
   );
 
+  const confidentialTransfer = useCallback(
+    (params: {
+      tokenAddress: `0x${string}`;
+      to: `0x${string}`;
+      amount: bigint;
+      onTransferSubmitted?: (txHash: `0x${string}`) => void;
+    }) => {
+      return new Promise((resolve, reject) => {
+        if (!iframeRef.current?.contentWindow) {
+          return reject(new Error("FHE Bridge iframe not ready or missing from layout"));
+        }
+
+        const requestId = generateRequestId();
+        pendingRequests.current.set(requestId, { resolve, reject });
+
+        if (params.onTransferSubmitted) {
+          const listenerKey = `${requestId}-confidential_transfer_submitted`;
+          const submittedListener = (event: MessageEvent) => {
+            if (event.data?.txHash) {
+              params.onTransferSubmitted?.(event.data.txHash);
+            }
+            activeListeners.current.delete(listenerKey);
+          };
+          activeListeners.current.set(listenerKey, submittedListener);
+        }
+
+        iframeRef.current.contentWindow.postMessage(
+          {
+            type: "confidentialTransfer",
+            requestId,
+            params: {
+              tokenAddress: params.tokenAddress,
+              to: params.to,
+              amount: params.amount.toString(),
+            },
+          },
+          window.location.origin
+        );
+      });
+    },
+    [generateRequestId]
+  );
+
   // Hidden bridge injector component
   const FHEIframe = useCallback(() => {
     return (
@@ -149,6 +192,7 @@ export function useFHEBridge() {
     isReady,
     getConfidentialBalance,
     unshield,
+    confidentialTransfer,
     FHEIframe,
   };
 }

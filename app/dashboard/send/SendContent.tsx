@@ -1,4 +1,3 @@
-// app/dashboard/unshield/UnshieldContent.tsx
 "use client";
 
 import Image from "next/image";
@@ -7,10 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { useRegistry, useRegistryPair } from "@/app/hooks/useRegistry";
-import { useUnwrap } from "@/app/hooks/useUnwrap";
+import { useConfidentialTransfer } from "@/app/hooks/useConfidentialTransfer";
 import { useTokenBalances } from "@/app/hooks/useTokenBalances";
 import { parseTokenInput, formatTokenUnits } from "@/app/lib/format";
-import { computeExpectedWrapAmount } from "@/app/lib/wrapper";
 import { etherscanTx, CHAIN_IDS } from "@/app/lib/constants";
 import type { EnrichedPair, Network } from "@/app/types";
 
@@ -39,16 +37,22 @@ function getTokenIconSrc(wrapperSymbol: string): string | null {
   return null;
 }
 
-export default function UnshieldContent() {
+export default function SendContent() {
   const searchParams = useSearchParams();
   const network = (searchParams.get("network") ?? "sepolia") as Network;
   const wrapperParam = searchParams.get("wrapper") as `0x${string}` | null;
 
-  const [selectedWrapper, setSelectedWrapper] = useState<`0x${string}` | null>(wrapperParam);
+  const [selectedWrapper, setSelectedWrapper] = useState<`0x${string}` | null>(
+    wrapperParam
+  );
   const [inputValue, setInputValue] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
 
   const { data: pairs = [] } = useRegistry(network);
-  const { data: pair } = useRegistryPair(selectedWrapper ?? undefined, network);
+  const { data: pair } = useRegistryPair(
+    selectedWrapper ?? undefined,
+    network
+  );
 
   // Reset selected wrapper when network changes
   useEffect(() => {
@@ -66,9 +70,9 @@ export default function UnshieldContent() {
     return (
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Unshield</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Send</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Unshield confidential tokens into ERC-20 tokens
+            Send confidential tokens to another wallet
           </p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-500 shadow-sm">
@@ -81,7 +85,7 @@ export default function UnshieldContent() {
   }
 
   return (
-    <InnerUnshieldContent
+    <InnerSendContent
       inputValue={inputValue}
       network={network}
       pair={pair}
@@ -89,11 +93,13 @@ export default function UnshieldContent() {
       selectedWrapper={selectedWrapper}
       setInputValue={setInputValue}
       setSelectedWrapper={setSelectedWrapper}
+      recipientAddress={recipientAddress}
+      setRecipientAddress={setRecipientAddress}
     />
   );
 }
 
-interface InnerUnshieldContentProps {
+interface InnerSendContentProps {
   inputValue: string;
   network: Network;
   pair: EnrichedPair;
@@ -101,9 +107,11 @@ interface InnerUnshieldContentProps {
   selectedWrapper: `0x${string}` | null;
   setInputValue: (value: string) => void;
   setSelectedWrapper: (wrapper: `0x${string}`) => void;
+  recipientAddress: string;
+  setRecipientAddress: (value: string) => void;
 }
 
-function InnerUnshieldContent({
+function InnerSendContent({
   inputValue,
   network,
   pair,
@@ -111,12 +119,17 @@ function InnerUnshieldContent({
   selectedWrapper,
   setInputValue,
   setSelectedWrapper,
-}: InnerUnshieldContentProps) {
+  recipientAddress,
+  setRecipientAddress,
+}: InnerSendContentProps) {
   const { login, authenticated } = usePrivy();
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const { balances, refetch: refetchBalances, isDecrypting } = useTokenBalances(pair, network);
+  const { balances, refetch: refetchBalances, isDecrypting } = useTokenBalances(
+    pair,
+    network
+  );
   const safeUserAddress =
     (address ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
 
@@ -126,7 +139,10 @@ function InnerUnshieldContent({
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     }
@@ -137,10 +153,9 @@ function InnerUnshieldContent({
   const correctChainId = CHAIN_IDS[network];
   const isWrongChain = authenticated && chainId !== correctChainId;
 
-  const unwrap = useUnwrap({
+  const transfer = useConfidentialTransfer({
     pair,
     network,
-    userAddress: safeUserAddress,
     onSuccess: () => {
       setInputValue("");
       refetchBalances();
@@ -148,16 +163,16 @@ function InnerUnshieldContent({
   });
 
   const parsedAmount = parseTokenInput(inputValue, pair.wrapperDecimals);
-  // For unshielding: wrapperAmount * rate = underlyingAmount
-  const expectedReceiveAmount = parsedAmount > 0n ? parsedAmount * pair.rate : null;
-
   const confidentialBalance = balances?.confidentialBalance;
-
   const maxBalance = confidentialBalance ?? 0n;
   const maxDecimals = pair.wrapperDecimals;
 
   function handleMax() {
-    setInputValue(formatTokenUnits(maxBalance, maxDecimals, maxDecimals, { useLocale: false }));
+    setInputValue(
+      formatTokenUnits(maxBalance, maxDecimals, maxDecimals, {
+        useLocale: false,
+      })
+    );
   }
 
   async function handleAction() {
@@ -169,47 +184,65 @@ function InnerUnshieldContent({
       switchChain?.({ chainId: correctChainId });
       return;
     }
-    if (!address || parsedAmount === 0n) return;
+    if (!address || parsedAmount === 0n || !recipientAddress) return;
 
-    await unwrap.execute(parsedAmount);
+    await transfer.execute({
+      to: recipientAddress as `0x${string}`,
+      amount: parsedAmount,
+    });
   }
 
-  const isUnshielding = unwrap.state !== "idle";
-  const isBusy = isUnshielding;
+  const isTransferring = transfer.state !== "idle";
+  const isBusy = isTransferring;
 
   function getButtonLabel() {
     if (!authenticated) return "Connect Wallet";
-    if (isWrongChain) return `Switch to ${network === "sepolia" ? "Sepolia" : "Mainnet"}`;
-    if (unwrap.state === "encrypting") return "Encrypting…";
-    if (unwrap.state === "submitting") return "Submitting…";
-    if (unwrap.state === "pending_decrypt") return "Decrypting…";
-    if (unwrap.state === "done") return "✓ Unshielded!";
-    if (unwrap.state === "error") return "Try Again";
-    return "Unshield Capital";
+    if (isWrongChain)
+      return `Switch to ${network === "sepolia" ? "Sepolia" : "Mainnet"}`;
+    if (transfer.state === "encrypting") return "Encrypting...";
+    if (transfer.state === "submitting") return "Submitting...";
+    if (transfer.state === "done") return "✓ Sent!";
+    if (transfer.state === "error") return "Try Again";
+    return "Send Tokens";
   }
 
-  const activeError = unwrap.errorMessage;
-  const activeTxHash = unwrap.unwrapTxHash ?? unwrap.finalizedTxHash;
+  const activeError = transfer.errorMessage;
+  const activeTxHash = transfer.transferTxHash;
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Unshield</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Send</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Unshield confidential tokens into ERC-20 tokens
+          Send confidential tokens to another wallet
         </p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Left: unshield card */}
+        {/* Left: send card */}
         <div className="flex-2 max-w-full md:max-w-lg">
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-xl  shadow-sm">
             <div className="p-5 space-y-4">
-              {/* You unshield section */}
+              {/* Recipient address */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                  Recipient Address
+                </label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={recipientAddress}
+                  onChange={(e) => setRecipientAddress(e.target.value)}
+                  disabled={isBusy}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-900 outline-none disabled:opacity-50"
+                />
+              </div>
+
+              {/* You send section */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    You unshield
+                    You send
                   </label>
                   {authenticated && (
                     <button
@@ -221,7 +254,10 @@ function InnerUnshieldContent({
                   )}
                 </div>
                 <div ref={dropdownRef} className="relative">
-                  <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 cursor-pointer hover:border-gray-300" onClick={() => setDropdownOpen(!dropdownOpen)}>
+                  <div
+                    className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 cursor-pointer hover:border-gray-300"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  >
                     <input
                       type="number"
                       placeholder="0.00"
@@ -248,7 +284,15 @@ function InnerUnshieldContent({
                       <span className="text-xs font-semibold text-gray-500">
                         {pair.wrapperSymbol}
                       </span>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`w-4 h-4 text-gray-400 hidden md:block transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        className={`w-4 h-4 text-gray-400 hidden md:block transition-transform ${
+                          dropdownOpen ? "rotate-180" : ""
+                        }`}
+                      >
                         <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
@@ -257,34 +301,40 @@ function InnerUnshieldContent({
                   {/* Dropdown menu */}
                   {dropdownOpen && (
                     <div className="absolute top-full right-0 mt-1 w-fit min-w-[200px] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
-                      {pairs.filter((p) => p.isValid).map((p) => (
-                        <button
-                          key={p.wrapperAddress}
-                          onClick={() => {
-                            setSelectedWrapper(p.wrapperAddress);
-                            setInputValue("");
-                            setDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition ${selectedWrapper === p.wrapperAddress ? "bg-[#f0faf5]" : ""}`}
-                        >
-                          <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden">
-                            {getTokenIconSrc(p.wrapperSymbol) ? (
-                              <Image
-                                src={getTokenIconSrc(p.wrapperSymbol)!}
-                                alt={p.wrapperSymbol}
-                                width={16}
-                                height={16}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              p.wrapperSymbol.slice(1, 3).toUpperCase()
-                            )}
-                          </div>
-                          <span className="text-xs font-semibold text-gray-900">
-                            {p.wrapperSymbol}
-                          </span>
-                        </button>
-                      ))}
+                      {pairs
+                        .filter((p) => p.isValid)
+                        .map((p) => (
+                          <button
+                            key={p.wrapperAddress}
+                            onClick={() => {
+                              setSelectedWrapper(p.wrapperAddress);
+                              setInputValue("");
+                              setDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition ${
+                              selectedWrapper === p.wrapperAddress
+                                ? "bg-[#f0faf5]"
+                                : ""
+                            }`}
+                          >
+                            <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden">
+                              {getTokenIconSrc(p.wrapperSymbol) ? (
+                                <Image
+                                  src={getTokenIconSrc(p.wrapperSymbol)!}
+                                  alt={p.wrapperSymbol}
+                                  width={16}
+                                  height={16}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                p.wrapperSymbol.slice(1, 3).toUpperCase()
+                              )}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-900">
+                              {p.wrapperSymbol}
+                            </span>
+                          </button>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -297,52 +347,20 @@ function InnerUnshieldContent({
                 )}
               </div>
 
-              {/* You receive section */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    You receive
-                  </label>
-                </div>
-                <div className="flex items-center justify-between  border border-gray-200 rounded-lg px-4 py-3">
-                  <span className="text-xl font-light text-gray-700">
-                    {expectedReceiveAmount !== null ? formatTokenUnits(expectedReceiveAmount, pair.tokenDecimals, 4) : "0.00"}
-                  </span>
-                  <div className="flex items-center gap-2 ml-2 relative">
-                    <div className="w-4 h-4 rounded-full bg-[#d0ede2] flex items-center justify-center shrink-0 overflow-hidden">
-                      {getTokenIconSrc(pair.wrapperSymbol) ? (
-                        <Image
-                          src={getTokenIconSrc(pair.wrapperSymbol)!}
-                          alt={pair.tokenSymbol}
-                          width={16}
-                          height={16}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        pair.tokenSymbol.slice(0, 2).toUpperCase()
-                      )}
-                    </div>
-                    <span className="text-xs font-semibold text-[#171717]/60">
-                      {pair.tokenSymbol}
-                    </span>
-                    {/* Checkmark */}
-                    {/* <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#156640] rounded-full flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} className="w-3 h-3">
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div> */}
-                  </div>
-                </div>
-              </div>
-
               {/* Balance decrypt widget */}
               {authenticated && (
                 <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-100">
                   <div>
-                    <div className="text-xs text-gray-400 font-medium">Encrypted Balance</div>
+                    <div className="text-xs text-gray-400 font-medium">
+                      Encrypted Balance
+                    </div>
                     <div className="text-sm font-semibold text-gray-900 mt-0.5">
                       {confidentialBalance !== undefined
-                        ? `${formatTokenUnits(confidentialBalance, pair.wrapperDecimals, 4)} ${pair.wrapperSymbol}`
+                        ? `${formatTokenUnits(
+                            confidentialBalance,
+                            pair.wrapperDecimals,
+                            4
+                          )} ${pair.wrapperSymbol}`
                         : "••••••"}
                     </div>
                   </div>
@@ -352,7 +370,13 @@ function InnerUnshieldContent({
                     className="flex items-center gap-1.5 text-xs font-semibold text-[#156640] hover:text-[#0f4f30] transition disabled:opacity-50"
                     title="Click to decrypt your balance (requires wallet signature)"
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className="w-4 h-4"
+                    >
                       {confidentialBalance !== undefined ? (
                         <>
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -377,20 +401,6 @@ function InnerUnshieldContent({
                 </div>
               )}
 
-              {/* Pending decrypt message */}
-              {unwrap.state === "pending_decrypt" && (
-                <div className="px-3 py-2.5 bg-amber-50 border border-amber-100 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-amber-700 font-medium">
-                    <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                    Zama FHE network is decrypting…
-                  </div>
-                  <div className="text-xs text-amber-600 mt-1">
-                    This takes 10–60 seconds. Your funds are safe.
-                    {unwrap.elapsedMs > 0 && ` (${Math.floor(unwrap.elapsedMs / 1000)}s elapsed)`}
-                  </div>
-                </div>
-              )}
-
               {/* Tx hash */}
               {activeTxHash && (
                 <a
@@ -399,7 +409,13 @@ function InnerUnshieldContent({
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-xs text-[#156640] hover:underline"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    className="w-3.5 h-3.5"
+                  >
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                     <polyline points="15 3 21 3 21 9" />
                     <line x1="10" y1="14" x2="21" y2="3" />
@@ -411,9 +427,9 @@ function InnerUnshieldContent({
               {/* Action button */}
               <button
                 onClick={handleAction}
-                disabled={isBusy && unwrap.state !== "error"}
+                disabled={isBusy && transfer.state !== "error"}
                 className={`w-full py-3.5 rounded-lg font-semibold text-sm cursor-pointer transition ${
-                  isBusy && unwrap.state !== "error"
+                  isBusy && transfer.state !== "error"
                     ? "bg-[#171717]/50 text-white cursor-wait"
                     : "bg-[#171717]/80 hover:bg-[#171717] text-white"
                 }`}
@@ -428,18 +444,44 @@ function InnerUnshieldContent({
         <div className="flex-1 space-y-4 hidden md:block">
           {pair && (
             <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Pair Details</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                Pair Details
+              </h3>
               <div className="space-y-3">
                 {[
-                  { label: "Underlying token", value: `${pair.tokenSymbol} (${pair.tokenName})` },
-                  { label: "Wrapper token", value: `${pair.wrapperSymbol} (${pair.wrapperName})` },
-                  { label: "Decimals", value: `${pair.tokenDecimals} → ${pair.wrapperDecimals}` },
-                  { label: "Rate", value: `1 ${pair.wrapperSymbol} = ${Number(pair.rate).toLocaleString()} ${pair.tokenSymbol}` },
-                  { label: "Status", value: pair.isValid ? "Active ✓" : "Revoked ✗" },
+                  {
+                    label: "Underlying token",
+                    value: `${pair.tokenSymbol} (${pair.tokenName})`,
+                  },
+                  {
+                    label: "Wrapper token",
+                    value: `${pair.wrapperSymbol} (${pair.wrapperName})`,
+                  },
+                  {
+                    label: "Decimals",
+                    value: `${pair.tokenDecimals} → ${pair.wrapperDecimals}`,
+                  },
+                  {
+                    label: "Rate",
+                    value: `1 ${pair.wrapperSymbol} = ${Number(
+                      pair.rate
+                    ).toLocaleString()} ${pair.tokenSymbol}`,
+                  },
+                  {
+                    label: "Status",
+                    value: pair.isValid ? "Active ✓" : "Revoked ✗",
+                  },
                 ].map((row) => (
-                  <div key={row.label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                    <span className="text-xs text-gray-400 font-medium">{row.label}</span>
-                    <span className="text-xs font-semibold text-gray-700">{row.value}</span>
+                  <div
+                    key={row.label}
+                    className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0"
+                  >
+                    <span className="text-xs text-gray-400 font-medium">
+                      {row.label}
+                    </span>
+                    <span className="text-xs font-semibold text-gray-700">
+                      {row.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -449,15 +491,35 @@ function InnerUnshieldContent({
           {/* Step guide */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">
-              How unshielding works
+              How sending works
             </h3>
             <Steps
               steps={[
-                { n: 1, title: "Submit unwrap", desc: "Your encrypted amount is submitted to the smart contract." },
-                { n: 2, title: "FHE decryption", desc: "The Zama relayer decrypts the amount off-chain (10–60s)." },
-                { n: 3, title: "Receive tokens", desc: "Your ERC-20 tokens are released back to your wallet." },
+                {
+                  n: 1,
+                  title: "Encrypt",
+                  desc: "Your transfer amount is encrypted using FHE.",
+                },
+                {
+                  n: 2,
+                  title: "Submit",
+                  desc: "The encrypted transfer is sent to the smart contract.",
+                },
+                {
+                  n: 3,
+                  title: "Complete",
+                  desc: "The confidential tokens are transferred to the recipient.",
+                },
               ]}
-              active={unwrap.state === "submitting" ? 0 : unwrap.state === "pending_decrypt" ? 1 : unwrap.state === "done" ? 2 : -1}
+              active={
+                transfer.state === "encrypting"
+                  ? 0
+                  : transfer.state === "submitting"
+                  ? 1
+                  : transfer.state === "done"
+                  ? 2
+                  : -1
+              }
             />
           </div>
         </div>
@@ -466,13 +528,21 @@ function InnerUnshieldContent({
   );
 }
 
-function Steps({ steps, active }: { steps: { n: number; title: string; desc: string }[]; active: number }) {
+function Steps({
+  steps,
+  active,
+}: {
+  steps: { n: number; title: string; desc: string }[];
+  active: number;
+}) {
   return (
     <div className="space-y-3">
       {steps.map((s, i) => (
         <div
           key={s.n}
-          className={`flex gap-3 p-3 rounded-lg transition ${active === i ? "bg-[#f0faf5]" : ""}`}
+          className={`flex gap-3 p-3 rounded-lg transition ${
+            active === i ? "bg-[#f0faf5]" : ""
+          }`}
         >
           <div
             className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -486,8 +556,12 @@ function Steps({ steps, active }: { steps: { n: number; title: string; desc: str
             {active > i ? "✓" : s.n}
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-800">{s.title}</div>
-            <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{s.desc}</div>
+            <div className="text-sm font-semibold text-gray-800">
+              {s.title}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+              {s.desc}
+            </div>
           </div>
         </div>
       ))}

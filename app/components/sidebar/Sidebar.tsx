@@ -49,6 +49,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Send",
+    href: "/dashboard/send",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-[18px] h-[18px]">
+        <path d="M22 2L11 13" strokeLinecap="round" />
+        <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+      </svg>
+    ),
+  },
+  {
     label: "Analytics",
     href: "/dashboard/analytics",
     icon: (
