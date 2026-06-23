@@ -365,7 +365,7 @@ function InnerShieldContent({ inputValue, network, pair, pairs, selectedWrapper,
         </div>
 
         {/* Right panel — How it works + Pair details */}
-        <div className="flex-1 space-y-4 w-full lg:w-auto">
+        <div className="flex-1 space-y-4 w-full lg:w-auto hidden md:block">
           {/* Progress steps */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">How shielding works</h3>
