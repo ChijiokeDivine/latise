@@ -124,7 +124,7 @@ export default function DashboardContent() {
               : topPairs.map((pair) => (
                   <Link
                     key={pair.wrapperAddress}
-                    href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&network=${network}`}
+                    href={`/dashboard/shield?wrapper=${pair.wrapperAddress}&network=${network}`}
                     className="flex items-center gap-4 p-4 hover:bg-gray-50 transition group"
                   >
                     <div className="w-6 h-6 rounded-full bg-[#d0ede2] flex items-center justify-center text-[#156640] font-bold text-sm shrink-0 overflow-hidden">
@@ -347,7 +347,7 @@ function PairsTable({
                 </td>
                 <td className="py-3 px-4">
                   <Link
-                    href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&network=${network}`}
+                    href={`/dashboard/shield?wrapper=${pair.wrapperAddress}&network=${network}`}
                     className="text-[12px] font-semibold text-[#156640] hover:text-[#0f4f30]"
                   >
                     Shield →
@@ -363,7 +363,7 @@ function PairsTable({
         {pairs.map((pair) => (
           <Link
             key={pair.wrapperAddress}
-            href={`/dashboard/vault?wrapper=${pair.wrapperAddress}&network=${network}`}
+            href={`/dashboard/shield?wrapper=${pair.wrapperAddress}&network=${network}`}
             className="block p-4 border-b border-gray-100 hover:bg-gray-50 transition"
           >
             <div className="flex items-center gap-3">
