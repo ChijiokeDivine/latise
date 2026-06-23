@@ -26,6 +26,9 @@ importers:
       '@zama-fhe/react-sdk':
         specifier: ^3.0.1
         version: 3.0.1(@tanstack/react-query@5.101.0(react@19.2.7))(@zama-fhe/sdk@3.0.1(@tanstack/query-core@5.101.0)(bufferutil@4.1.0)(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(react@19.2.7)(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@3.6.16)
+      '@zama-fhe/relayer-sdk':
+        specifier: ^0.4.4
+        version: 0.4.4(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
@@ -2204,6 +2207,11 @@ packages:
 
   '@zama-fhe/relayer-sdk@0.4.3':
     resolution: {integrity: sha512-/Lz+yBda4vppMx3FiCnqjRmBWxxEzGrcyOLeFQg1fqadnCWPU5GCmx7pSBQXesJHQz7MJ5hD07ERv2gdNjxv3w==}
+    engines: {node: '>=22'}
+    hasBin: true
+
+  '@zama-fhe/relayer-sdk@0.4.4':
+    resolution: {integrity: sha512-N+ateFbi7Fu9JsxExapfn/SdU3Bye3tvCfIaZQsRNXsZ7ep39S0BUnmljh+JhalUKT11xlMoA4+1TKLx72amcw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -8553,6 +8561,21 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@zama-fhe/relayer-sdk@0.4.4(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+    dependencies:
+      commander: 14.0.3
+      ethers: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      fetch-retry: 6.0.0
+      keccak: 3.0.4
+      node-tfhe: 1.4.0-alpha.3
+      node-tkms: 0.12.8
+      tfhe: 1.4.0-alpha.3
+      tkms: 0.12.8
+      wasm-feature-detect: 1.8.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   '@zama-fhe/sdk@3.0.1(@tanstack/query-core@5.101.0)(bufferutil@4.1.0)(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))':
     dependencies:
       '@zama-fhe/relayer-sdk': 0.4.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
@@ -9437,7 +9460,7 @@ snapshots:
 
   extension-port-stream@3.0.0:
     dependencies:
-      readable-stream: 3.6.2
+      readable-stream: 4.7.0
       webextension-polyfill: 0.10.0
 
   fast-copy@3.0.2: {}
@@ -10194,8 +10217,8 @@ snapshots:
   ox@0.6.7(typescript@5.9.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
       '@scure/bip32': 1.6.2
       '@scure/bip39': 1.5.4
       abitype: 1.0.8(typescript@5.9.3)(zod@3.25.76)

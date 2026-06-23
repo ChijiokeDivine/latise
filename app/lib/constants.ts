@@ -168,7 +168,7 @@ export const INTERVALS = {
 
 export const BLOCKS_PER_3_DAYS = 21_600n;
 export const BLOCKS_PER_1_DAY = 7_200n;
-export const ALCHEMY_MAX_BLOCK_RANGE = 2_000n; // Safe for Alchemy free tier
+export const ALCHEMY_MAX_BLOCK_RANGE = 10n; // Safe for Alchemy free tier (max 10 blocks)
 
 /** @deprecated Use ALCHEMY_MAX_BLOCK_RANGE */
 export const INFURA_MAX_BLOCK_RANGE = ALCHEMY_MAX_BLOCK_RANGE;

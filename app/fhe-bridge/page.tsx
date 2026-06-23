@@ -1,3 +1,10 @@
+// app/fhe-bridge/page.tsx
+// Headless iframe that runs the Zama FHE SDK in isolation.
+// Communicates with the parent window via postMessage.
+//
+// SDK: @zama-fhe/relayer-sdk (legacy/original package).
+// - Testnet (Sepolia): SepoliaConfig — relayer.testnet.zama.cloud, no API key.
+// - Mainnet:  custom config via /api/relayer/1 proxy which injects ZAMA_RELAYER_API_KEY.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -5,6 +12,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   RelayerWeb,
   ZamaProvider,
+  SepoliaConfig,
   indexedDBStorage,
   useConfidentialBalance,
   useUnshield,
@@ -14,7 +22,8 @@ import { WagmiSigner } from "@zama-fhe/react-sdk/wagmi";
 import { sepolia, mainnet } from "viem/chains";
 import { createConfig, http, WagmiProvider } from "wagmi";
 
-// --- Recreate minimal providers (no Privy needed for headless bridge) ---
+// ─── Wagmi config (minimal — just for the Zama WagmiSigner) ──────────────────
+
 const wagmiConfig = createConfig({
   chains: [sepolia, mainnet],
   transports: {
@@ -23,268 +32,185 @@ const wagmiConfig = createConfig({
   },
 });
 
-// Initialize signer and relayer only on client
+// ─── Zama signer + relayer — created once, client-side only ──────────────────
+
 let signer: WagmiSigner | null = null;
 let relayer: RelayerWeb | null = null;
 
-if (typeof window !== "undefined") {
+function initRelayer() {
+  if (typeof window === "undefined" || signer) return;
+
   signer = new WagmiSigner({ config: wagmiConfig });
+
+  // Mainnet uses our API proxy at /api/relayer/1 which adds Authorization header.
+  // Sepolia uses SepoliaConfig directly — public relayer, no key required.
+  const mainnetRelayerUrl = `${window.location.origin}/api/relayer/1`;
+
   relayer = new RelayerWeb({
     getChainId: () => signer!.getChainId(),
     transports: {
+      // Testnet: spread SepoliaConfig transport fields, no API key needed
       [sepolia.id]: {
-        relayerUrl: "https://relayer.testnet.zama.org",
+        ...SepoliaConfig,
         network: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL!,
       },
+      // Mainnet: proxy that server-injects ZAMA_RELAYER_API_KEY
       [mainnet.id]: {
-        relayerUrl: "https://relayer.mainnet.zama.org",
+        relayerUrl: mainnetRelayerUrl,
         network: process.env.NEXT_PUBLIC_MAINNET_RPC_URL!,
       },
     },
   });
 }
 
-// --- Bridge Component ---
-function FHEBridge() {
-  // Map to store callbacks by request id
-  const callbacksRef = useRef<Map<string, (data: any) => void>>(new Map());
-  // Simple counter for request ids
-  const requestIdCounterRef = useRef(0);
+// ─── Message types ────────────────────────────────────────────────────────────
 
-  // --- Handlers for specific request types ---
-  // Helper to send a message to parent window
-  const sendMessage = (data: any) => {
-    window.parent.postMessage(
-      data,
-      window.location.origin // Only send to same origin parent
-    );
-  };
+type RequestType = "getConfidentialBalance" | "unshield" | "confidentialTransfer";
 
-  // Handler for getConfidentialBalance requests
-  const handleGetConfidentialBalance = async (
-    requestId: string,
-    tokenAddress: `0x${string}`
-  ) => {
-    // We need to render useConfidentialBalance in a component, so we'll use a
-    // dynamic render approach or a component that mounts/unmounts with props
-    // Wait — better to create a dynamic component that uses the hook and reports back!
-    // Let's use a state-based approach:
+interface ActiveRequest {
+  id: string;
+  type: RequestType;
+  params: Record<string, string>;
+}
 
-    // Store a pending request state
-    const pendingBalanceRequestsRef = useRef<
-      Map<string, { tokenAddress: `0x${string}`; requestId: string }>
-    >(new Map());
+// ─── Sub-components that use Zama hooks ──────────────────────────────────────
 
-    const BalanceFetcher = ({
-      tokenAddress,
-      requestId,
-      onDone,
-    }: {
-      tokenAddress: `0x${string}`;
-      requestId: string;
-      onDone: (data: any) => void;
-    }) => {
-      const { data, isLoading, error } = useConfidentialBalance({
-        tokenAddress,
-      });
+function sendToParent(data: Record<string, unknown>) {
+  window.parent.postMessage(data, window.location.origin);
+}
 
-      useEffect(() => {
-        if (!isLoading) {
-          onDone({ data, error, requestId });
-        }
-      }, [data, isLoading, error, requestId, onDone]);
-
-      return null;
-    };
-
-    // Alternatively, let's implement this using a registry of active requests and components
-    // Wait, perhaps for simplicity, let's create a generic HookRunner component that can run any Zama hook on demand
-    // But actually, maybe for now, let's handle useUnshield and useConfidentialBalance specifically
-    // Let's start with a simple approach: use useState to track active requests and render components accordingly
-  };
-
-  // Wait, let's take a step back: for better control, let's create a generic HookExecutor component that can dynamically use the required hooks based on incoming messages
-  const [activeRequests, setActiveRequests] = useState<
-    Array<{
-      id: string;
-      type: "getConfidentialBalance" | "unshield" | "confidentialTransfer";
-      params: any;
-    }>
-  >([]);
+function UnshieldExecutor({
+  requestId,
+  tokenAddress,
+  amount,
+  onDone,
+}: {
+  requestId: string;
+  tokenAddress: `0x${string}`;
+  amount: bigint;
+  onDone: () => void;
+}) {
+  const { mutateAsync: unshield } = useUnshield({ tokenAddress });
+  const ran = useRef(false);
 
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Validate message origin
-      if (event.origin !== window.location.origin) return;
+    if (ran.current) return;
+    ran.current = true;
 
-      const { type, requestId, params } = event.data;
-
-      // Register the request
-      setActiveRequests((prev) => [
-        ...prev,
-        { id: requestId, type, params },
-      ]);
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    unshield({
+      amount,
+      onUnwrapSubmitted: (txHash) => {
+        sendToParent({ type: "unshield_submitted", requestId, txHash });
+      },
+    })
+      .then((result) => sendToParent({ type: "unshield_success", requestId, result }))
+      .catch((error) =>
+        sendToParent({
+          type: "unshield_error",
+          requestId,
+          error: error instanceof Error ? { message: error.message, name: error.name } : String(error),
+        })
+      )
+      .finally(() => setTimeout(onDone, 1000));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handler components that execute the hooks and send responses
-  const UnshieldExecutor = ({
-    requestId,
-    tokenAddress,
-    amount,
-  }: {
-    requestId: string;
-    tokenAddress: `0x${string}`;
-    amount: bigint;
-  }) => {
-    const { mutateAsync: unshield } = useUnshield({ tokenAddress });
+  return null;
+}
 
-    useEffect(() => {
-      const execute = async () => {
-        try {
-          let txHash: `0x${string}` | undefined;
-          const result = await unshield({
-            amount,
-            onUnwrapSubmitted: (hash) => {
-              txHash = hash as `0x${string}`;
-              sendMessage({
-                type: "unshield_submitted",
-                requestId,
-                txHash,
-              });
-            },
-          });
-          sendMessage({
-            type: "unshield_success",
-            requestId,
-            result,
-          });
-        } catch (error) {
-          sendMessage({
-            type: "unshield_error",
-            requestId,
-            error:
-              error instanceof Error
-                ? { message: error.message, name: error.name }
-                : String(error),
-          });
-        } finally {
-          // Remove request from active list after completion (delay to make sure parent has time to process)
-          setTimeout(() => {
-            setActiveRequests((prev) =>
-              prev.filter((r) => r.id !== requestId)
-            );
-          }, 1000);
-        }
-      };
-      execute();
-    }, [unshield, requestId, amount]);
+function BalanceExecutor({
+  requestId,
+  tokenAddress,
+  onDone,
+}: {
+  requestId: string;
+  tokenAddress: `0x${string}`;
+  onDone: () => void;
+}) {
+  const { data, isLoading, error } = useConfidentialBalance({ tokenAddress });
 
-    return null;
-  };
+  useEffect(() => {
+    if (isLoading) return;
+    sendToParent({ type: "confidential_balance_response", requestId, data, error: error ?? null });
+    onDone();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
-  const BalanceExecutor = ({
-    requestId,
-    tokenAddress,
-  }: {
-    requestId: string;
-    tokenAddress: `0x${string}`;
-  }) => {
-    const { data, isLoading, error } = useConfidentialBalance({
-      tokenAddress,
-    });
+  return null;
+}
 
-    useEffect(() => {
-      if (!isLoading) {
-        sendMessage({
-          type: "confidential_balance_response",
+function TransferExecutor({
+  requestId,
+  tokenAddress,
+  to,
+  amount,
+  onDone,
+}: {
+  requestId: string;
+  tokenAddress: `0x${string}`;
+  to: `0x${string}`;
+  amount: bigint;
+  onDone: () => void;
+}) {
+  const { mutateAsync: confidentialTransfer } = useConfidentialTransfer({ tokenAddress });
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+
+    confidentialTransfer({
+      to,
+      amount,
+      onTransferSubmitted: (txHash) => {
+        sendToParent({ type: "confidential_transfer_submitted", requestId, txHash });
+      },
+    })
+      .then((result) => sendToParent({ type: "confidential_transfer_success", requestId, result }))
+      .catch((error) =>
+        sendToParent({
+          type: "confidential_transfer_error",
           requestId,
-          data,
-          error,
-        });
-        // Remove request after sending response
-        setActiveRequests((prev) =>
-          prev.filter((r) => r.id !== requestId)
-        );
-      }
-    }, [data, isLoading, error, requestId]);
+          error: error instanceof Error ? { message: error.message, name: error.name } : String(error),
+        })
+      )
+      .finally(() => setTimeout(onDone, 1000));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    return null;
-  };
+  return null;
+}
 
-  const ConfidentialTransferExecutor = ({
-    requestId,
-    tokenAddress,
-    to,
-    amount,
-  }: {
-    requestId: string;
-    tokenAddress: `0x${string}`;
-    to: `0x${string}`;
-    amount: bigint;
-  }) => {
-    const { mutateAsync: confidentialTransfer } = useConfidentialTransfer({
-      tokenAddress,
-    });
+// ─── Bridge orchestrator ──────────────────────────────────────────────────────
 
-    useEffect(() => {
-      const execute = async () => {
-        try {
-          let txHash: `0x${string}` | undefined;
-          const result = await confidentialTransfer({
-            to,
-            amount,
-            onTransferSubmitted: (hash) => {
-              txHash = hash as `0x${string}`;
-              sendMessage({
-                type: "confidential_transfer_submitted",
-                requestId,
-                txHash,
-              });
-            },
-          });
-          sendMessage({
-            type: "confidential_transfer_success",
-            requestId,
-            result,
-          });
-        } catch (error) {
-          sendMessage({
-            type: "confidential_transfer_error",
-            requestId,
-            error:
-              error instanceof Error
-                ? { message: error.message, name: error.name }
-                : String(error),
-          });
-        } finally {
-          // Remove request from active list after completion
-          setTimeout(() => {
-            setActiveRequests((prev) =>
-              prev.filter((r) => r.id !== requestId)
-            );
-          }, 1000);
-        }
-      };
-      execute();
-    }, [confidentialTransfer, requestId, to, amount]);
+function FHEBridge() {
+  const [requests, setRequests] = useState<ActiveRequest[]>([]);
 
-    return null;
-  };
+  const removeRequest = (id: string) =>
+    setRequests((prev) => prev.filter((r) => r.id !== id));
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      const { type, requestId, params } = event.data ?? {};
+      if (!type || !requestId) return;
+      setRequests((prev) => [...prev, { id: requestId, type, params }]);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   return (
     <>
-      {activeRequests.map((req) => {
+      {requests.map((req) => {
         if (req.type === "unshield") {
           return (
             <UnshieldExecutor
               key={req.id}
               requestId={req.id}
-              tokenAddress={req.params.tokenAddress}
+              tokenAddress={req.params.tokenAddress as `0x${string}`}
               amount={BigInt(req.params.amount)}
+              onDone={() => removeRequest(req.id)}
             />
           );
         }
@@ -293,61 +219,54 @@ function FHEBridge() {
             <BalanceExecutor
               key={req.id}
               requestId={req.id}
-              tokenAddress={req.params.tokenAddress}
+              tokenAddress={req.params.tokenAddress as `0x${string}`}
+              onDone={() => removeRequest(req.id)}
             />
           );
         }
         if (req.type === "confidentialTransfer") {
           return (
-            <ConfidentialTransferExecutor
+            <TransferExecutor
               key={req.id}
               requestId={req.id}
-              tokenAddress={req.params.tokenAddress}
-              to={req.params.to}
+              tokenAddress={req.params.tokenAddress as `0x${string}`}
+              to={req.params.to as `0x${string}`}
               amount={BigInt(req.params.amount)}
+              onDone={() => removeRequest(req.id)}
             />
           );
         }
         return null;
       })}
-      {/* Empty UI - just a placeholder */}
-      <div className="fixed inset-0 pointer-events-none opacity-0" />
     </>
   );
 }
 
+// ─── Page — full provider tree ────────────────────────────────────────────────
+
 export default function FHEBridgePage() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    initRelayer();
+    setReady(true);
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            retry: 2,
-            refetchOnWindowFocus: false,
-          },
+          queries: { staleTime: 30_000, retry: 2, refetchOnWindowFocus: false },
         },
       })
   );
 
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  if (!isHydrated || !signer || !relayer) {
-    return null;
-  }
+  if (!ready || !signer || !relayer) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={wagmiConfig}>
-        <ZamaProvider
-          relayer={relayer}
-          signer={signer}
-          storage={indexedDBStorage}
-        >
+        <ZamaProvider relayer={relayer} signer={signer} storage={indexedDBStorage}>
           <FHEBridge />
         </ZamaProvider>
       </WagmiProvider>
