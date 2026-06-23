@@ -1,8 +1,7 @@
 # Latise: Confidential Wrapper Token Protocol
 
-<div align="center">
+<div align="left">
 
-  <h3>🔐 Shield Your On-Chain Assets</h3>
   <p>Confidential wrapper tokens for EVM blockchains using Fully Homomorphic Encryption (FHE) - powered by ZAMA</p>
  
 </div>
