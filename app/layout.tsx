@@ -30,11 +30,56 @@ export const metadata: Metadata = {
     "unwrap",
     "encrypted balance",
   ],
+
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Latise — The Confidential Asset Gateway",
-    description:
-      "Wrap standard ERC-20s into fully encrypted ERC-7984 tokens. Your balances, your privacy.",
+    description: "Wrap standard ERC-20s into fully encrypted ERC-7984 tokens. Your balances, your privacy.",
+    url: "https://latise.xyz",
+    siteName: "Latise",
+    images: [
+      {
+        url: "/og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Latise – Wrap standard ERC-20s into fully encrypted ERC-7984 tokens. Your balances, your privacy.",
+      },
+    ],
+    locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Latise",
+    description: "Wrap standard ERC-20s into fully encrypted ERC-7984 tokens. Your balances, your privacy.",
+    images: ["/og.jpg"],
+  },
+  manifest: "/favicon_io/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon_io/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { url: "/favicon_io/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon_io/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/favicon_io/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      {
+        rel: "android-chrome-192x192",
+        url: "/favicon_io/android-chrome-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        rel: "android-chrome-512x512",
+        url: "/favicon_io/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
   },
 };
 
