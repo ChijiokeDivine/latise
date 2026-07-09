@@ -915,7 +915,7 @@ export default function Home() {
           <p className="hero-subtext">
             Convert any ERC-20 into its confidential counterpart. Balances live on chain, only you can read them.
           </p>
-          <a href="#" className="btn-cta">Start exploring</a>
+          <a href="/dashboard" className="btn-cta">Start exploring</a>
         </section>
 
         {/* ── CARD GRID ───────────────────────────────────────────── */}
